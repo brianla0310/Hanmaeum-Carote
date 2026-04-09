@@ -14,7 +14,6 @@
         .snap-center { scroll-snap-align: center; }
         .modal-open { overflow: hidden; }
 
-        /* 불타는 HOT 아이콘 애니메이션 */
         @keyframes flicker {
             0% { transform: scale(1) rotate(-2deg); opacity: 0.9; }
             50% { transform: scale(1.1) rotate(2deg); opacity: 1; }
@@ -24,7 +23,6 @@
 
         @media (min-width: 768px) {
             .desktop-modal-height { height: 640px !important; }
-            /* 데스크탑에서 정보 영역의 상세 설명만 독립적으로 스크롤되게 설정 */
             .info-scroll-area { height: calc(640px - 220px); overflow-y: auto; }
         }
     </style>
@@ -67,17 +65,21 @@
         <div id="loading" class="flex flex-col items-center py-20 text-gray-400 font-bold">데이터 동기화 중...</div>
 
         <div id="content" class="hidden">
-            <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
-                <h3 class="text-2xl font-black text-gray-800 tracking-tight">나눔 물품 목록</h3>
+            <div class="flex flex-col items-center mb-10 gap-6">
+                <div class="w-full max-w-md relative group">
+                    <input type="text" id="searchInput" oninput="handleSearch(this.value)" placeholder="찾으시는 물품이 있나요?" 
+                        class="w-full bg-white border-2 border-gray-100 px-6 py-4 rounded-3xl font-bold text-gray-800 outline-none focus:border-orange-500 focus:shadow-lg focus:shadow-orange-50/50 transition-all pr-12">
+                    <span class="absolute right-5 top-1/2 -translate-y-1/2 text-xl opacity-20 group-focus-within:opacity-100 group-focus-within:text-orange-500 transition-all">🔍</span>
+                </div>
                 <div id="filterGroup" class="flex flex-wrap justify-center gap-2"></div>
             </div>
+
             <div id="productGrid" class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8"></div>
         </div>
     </main>
 
     <div id="detailModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/85 backdrop-blur-sm" onclick="closeModal()"></div>
-        
         <div class="bg-white rounded-[2.5rem] w-full max-w-md md:max-w-5xl desktop-modal-height overflow-hidden relative shadow-2xl flex flex-col md:flex-row font-bold">
             <button onclick="closeModal()" class="absolute top-5 right-5 z-[130] bg-black/40 text-white w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold backdrop-blur-md hover:bg-black/60 shadow-lg active:scale-90 transition-all">✕</button>
             
@@ -90,7 +92,7 @@
                 </div>
             </div>
 
-            <div class="w-full md:w-[37.5%] flex flex-col bg-white h-auto md:h-full overflow-hidden">
+            <div class="w-full md:w-[37.5%] flex flex-col bg-white max-h-[50vh] md:max-h-none md:h-full overflow-hidden">
                 <div class="p-8 pb-4">
                     <div class="flex gap-2 mb-4">
                         <span id="modalCategory" onclick="handleCategoryClickFromModal()" class="text-[9px] font-black bg-orange-50 text-orange-600 px-3 py-1.5 rounded-full uppercase cursor-pointer hover:bg-orange-100 transition-colors"></span>
@@ -102,12 +104,10 @@
                         <span id="sellerName" class="text-gray-700 font-bold"></span>
                     </p>
                 </div>
-
                 <div class="px-8 flex-1 overflow-y-auto no-scrollbar info-scroll-area pb-6">
                     <div id="modalDesc" class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap font-bold"></div>
                 </div>
-
-                <div class="p-8 border-t border-gray-50 bg-white flex flex-col gap-4 mt-auto">
+                <div class="p-8 border-t border-gray-50 bg-white flex flex-col gap-4 mt-auto shrink-0">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-bold text-gray-400">희망 기부금</span>
                         <span id="modalPrice" class="text-3xl font-black text-gray-900 tracking-tighter"></span>
@@ -125,25 +125,18 @@
         
         let allProducts = [];
         let currentFilter = '전체';
+        let searchTerm = '';
 
         async function loadData() {
             try {
                 const response = await fetch(CSV_URL + "&t=" + Date.now());
                 const csvText = await response.text();
                 const rows = csvText.split(/\r?\n/).filter(r => r.trim() !== "");
-                
-                // 큰따옴표 안의 쉼표는 무시하고, 바깥에 있는 쉼표만 기준으로 분리하는 정규식
                 const csvSplitRegex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
-                
-                // 헤더 분리 시에도 정규식 적용 및 양끝 따옴표 제거
                 const headers = rows[0].split(csvSplitRegex).map(h => h.replace(/(^"|"$)/g, '').trim().toLowerCase());
                 
                 allProducts = rows.slice(1).map(row => {
-                    // 데이터 분리 및 따옴표 찌꺼기 제거
-                    const values = row.split(csvSplitRegex).map(v => {
-                        return v.replace(/(^"|"$)/g, '').replace(/""/g, '"').trim();
-                    });
-                    
+                    const values = row.split(csvSplitRegex).map(v => v.replace(/(^"|"$)/g, '').replace(/""/g, '"').trim());
                     let obj = {};
                     headers.forEach((h, i) => { obj[h] = values[i] || ""; });
                     return obj;
@@ -151,12 +144,45 @@
 
                 calculateDonation();
                 renderFilters();
-                renderItems(allProducts);
+                filterAndRender(); // 초기 렌더링
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('content').classList.remove('hidden');
             } catch (e) {
                 console.error("데이터 로드 실패:", e);
             }
+        }
+
+        // 검색 및 필터 통합 처리 함수
+        function filterAndRender() {
+            let filtered = allProducts;
+            
+            // 1. 카테고리 필터 적용
+            if (currentFilter !== '전체') {
+                filtered = filtered.filter(p => p.category === currentFilter);
+            }
+            
+            // 2. 검색어 필터 적용 (이름 또는 설명에 포함된 경우)
+            if (searchTerm.trim() !== '') {
+                const query = searchTerm.toLowerCase();
+                filtered = filtered.filter(p => 
+                    p.name.toLowerCase().includes(query) || 
+                    p.desc.toLowerCase().includes(query)
+                );
+            }
+            
+            renderItems(filtered);
+        }
+
+        function handleSearch(val) {
+            searchTerm = val;
+            filterAndRender();
+        }
+
+        function applyFilter(cat) {
+            currentFilter = cat;
+            renderFilters();
+            filterAndRender();
+            document.getElementById('market-top').scrollIntoView({ behavior: 'smooth' });
         }
 
         function calculateDonation() {
@@ -173,7 +199,7 @@
             const cats = ['전체', ...new Set(allProducts.map(p => p.category).filter(c => c))];
             const group = document.getElementById('filterGroup');
             group.innerHTML = cats.map(c => `
-                <button onclick="applyFilter('${c}')" class="px-5 py-2.5 rounded-full text-xs font-bold border-2 transition-all ${c === currentFilter ? 'chip-active border-orange-500' : 'bg-white border-gray-100 text-gray-500 hover:border-orange-200'}">
+                <button onclick="applyFilter('${c.replace(/'/g, "\\'")}')" class="px-5 py-2.5 rounded-full text-xs font-bold border-2 transition-all ${c === currentFilter ? 'chip-active border-orange-500' : 'bg-white border-gray-100 text-gray-500 hover:border-orange-200'}">
                     ${c}
                 </button>
             `).join('');
@@ -181,27 +207,28 @@
 
         function renderItems(items) {
             const grid = document.getElementById('productGrid');
+            if (items.length === 0) {
+                grid.innerHTML = `<div class="col-span-full py-20 text-center text-gray-400 font-bold">검색 결과가 없습니다. 🥕</div>`;
+                return;
+            }
             grid.innerHTML = items.map(p => {
                 const imgs = p.img.split(';').map(s => s.trim());
-                
-                // [HOT 배지] 우측 하단으로 이동
                 const hotBadge = (p.is_hot && p.is_hot.toLowerCase() === 'y') ? 
-                    `<div class="absolute bottom-4 right-4 z-10 bg-red-600 text-white px-2.5 py-1.5 rounded-lg text-[10px] font-extrabold flex items-center gap-1.5 shadow-xl fire-icon">
-                        <span>🔥</span> HOT
-                    </div>` : '';
+                    `<div class="absolute bottom-4 right-4 z-10 bg-red-600 text-white px-2.5 py-1.5 rounded-lg text-[10px] font-extrabold flex items-center gap-1.5 shadow-xl fire-icon"><span>🔥</span> HOT</div>` : '';
 
                 return `
                 <div class="bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-gray-50 flex flex-col cursor-pointer group h-full relative" onclick="openModal('${p.id}')">
                     <div class="aspect-square bg-gray-50 relative overflow-hidden">
-                        <img src="${imgs[0] || 'https://via.placeholder.com/400'}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 shadow-inner">
+                        <img src="${imgs[0] || 'https://via.placeholder.com/400'}" onerror="this.src='https://via.placeholder.com/400?text=No+Image'" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 shadow-inner">
                         <div class="absolute top-4 left-4 flex gap-1 items-center z-10">
-                            <span class="text-[9px] font-black ${getStatusColor(p.status)} text-white px-2.5 py-1 rounded-lg uppercase shadow-sm tracking-tighter font-bold">${p.status}</span>
-                            <span onclick="event.stopPropagation(); applyFilter('${p.category}')" class="text-[9px] font-black bg-white/80 backdrop-blur-sm text-gray-700 px-2.5 py-1 rounded-lg uppercase shadow-sm border border-gray-100 hover:bg-orange-500 hover:text-white transition-colors">
+                            <span class="text-[9px] font-black ${getStatusColor(p.status)} text-white px-2.5 py-1 rounded-lg uppercase font-bold">${p.status}</span>
+                            <span onclick="event.stopPropagation(); applyFilter('${p.category.replace(/'/g, "\\'")}')" class="text-[9px] font-black bg-white/80 backdrop-blur-sm text-gray-700 px-2.5 py-1 rounded-lg uppercase shadow-sm border border-gray-100 hover:bg-orange-500 hover:text-white transition-colors">
                                 ${p.category}
                             </span>
                         </div>
-                        ${imgs.length > 1 ? `<span class="absolute top-4 right-4 text-[9px] bg-black/40 text-white px-2 py-1 rounded-md backdrop-blur-md font-bold tracking-tighter z-10">📸 ${imgs.length}</span>` : ''}
-                        ${hotBadge} </div>
+                        ${imgs.length > 1 ? `<span class="absolute bottom-4 left-4 text-[9px] bg-black/40 text-white px-2 py-1 rounded-md backdrop-blur-md font-bold tracking-tighter z-10">📸 ${imgs.length}</span>` : ''}
+                        ${hotBadge} 
+                    </div>
                     <div class="p-6 flex-grow">
                         <h4 class="font-bold text-gray-800 text-sm md:text-base line-clamp-1 mb-1 group-hover:text-orange-500 transition-colors font-black leading-tight">${p.name}</h4>
                         <p class="text-xl font-black text-orange-500 tracking-tighter font-mono font-bold">€${p.price}</p>
@@ -223,19 +250,15 @@
 
             const imgContainer = document.getElementById('modalImages');
             const images = p.img.split(';').map(url => url.trim()).filter(url => url !== "");
-            imgContainer.innerHTML = images.map(url => `
-                <img src="${url}" class="w-full h-full object-cover flex-shrink-0 snap-center shadow-inner" onerror="this.src='https://via.placeholder.com/400?text=Image+Error'">
-            `).join('');
+            imgContainer.innerHTML = images.map(url => `<img src="${url}" class="w-full h-full object-cover flex-shrink-0 snap-center shadow-inner" onerror="this.src='https://via.placeholder.com/400?text=Image+Error'">`).join('');
             imgContainer.scrollLeft = 0;
             const badge = document.getElementById('imgBadge');
-            const pBtn = document.getElementById('prevBtn');
-            const nBtn = document.getElementById('nextBtn');
             if(images.length > 1) {
-                [badge, pBtn, nBtn].forEach(el => el.classList.remove('hidden'));
+                [badge, document.getElementById('prevBtn'), document.getElementById('nextBtn')].forEach(el => el.classList.remove('hidden'));
                 document.getElementById('currIdx').innerText = "1";
                 document.getElementById('totalIdx').innerText = images.length;
             } else {
-                [badge, pBtn, nBtn].forEach(el => el.classList.add('hidden'));
+                [badge, document.getElementById('prevBtn'), document.getElementById('nextBtn')].forEach(el => el.classList.add('hidden'));
             }
             document.getElementById('modalReserveBtn').onclick = () => reserve(p.name, p.price, p.status, p.seller);
             document.getElementById('detailModal').classList.remove('hidden');
@@ -244,11 +267,7 @@
 
         function scrollSlider(direction) {
             const container = document.getElementById('modalImages');
-            const total = parseInt(document.getElementById('totalIdx').innerText);
-            const current = parseInt(document.getElementById('currIdx').innerText);
-            if (direction === 1 && current === total) container.scrollTo({ left: 0, behavior: 'smooth' });
-            else if (direction === -1 && current === 1) container.scrollTo({ left: container.clientWidth * (total - 1), behavior: 'smooth' });
-            else container.scrollBy({ left: direction * container.clientWidth, behavior: 'smooth' });
+            container.scrollBy({ left: direction * container.clientWidth, behavior: 'smooth' });
         }
 
         function updateImgIndex(el) {
@@ -259,6 +278,12 @@
         function closeModal() {
             document.getElementById('detailModal').classList.add('hidden');
             document.body.classList.remove('modal-open');
+        }
+
+        function handleCategoryClickFromModal() {
+            const cat = document.getElementById('modalCategory').innerText;
+            closeModal();
+            applyFilter(cat);
         }
 
         function getStatusColor(s) {
@@ -275,14 +300,6 @@
                     window.open(TRADE_CHAT_URL, '_blank');
                 }
             });
-        }
-
-        function applyFilter(cat) {
-            currentFilter = cat;
-            const filtered = cat === '전체' ? allProducts : allProducts.filter(p => p.category === cat);
-            renderItems(filtered);
-            renderFilters();
-            document.getElementById('market-top').scrollIntoView({ behavior: 'smooth' });
         }
 
         loadData();
