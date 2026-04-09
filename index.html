@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700;900&display=swap');
-        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; color: #1f2937; }
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; color: #1f2937; -webkit-tap-highlight-color: transparent; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .chip-active { background-color: #f97316 !important; color: white !important; border-color: #f97316 !important; }
         .snap-x { scroll-snap-type: x mandatory; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
@@ -35,26 +35,26 @@
     </header>
 
     <section class="max-w-7xl mx-auto px-5 mt-8">
-        <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden">
+        <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-[2rem] p-8 text-white shadow-xl relative overflow-hidden">
             <div class="relative z-10">
-                <h2 class="text-2xl md:text-3xl font-black mb-2 tracking-tight">사랑나눔 헌금 현황</h2>
+                <h2 class="text-2xl md:text-3xl font-black mb-2 tracking-tight text-orange-50">사랑나눔 헌금 현황</h2>
                 <div class="flex items-baseline gap-2 mb-6">
-                    <span id="progressText" class="text-4xl font-black">€0</span>
+                    <span id="progressText" class="text-4xl font-black text-white">€0</span>
                     <span class="text-orange-100 text-sm font-bold opacity-80">/ 목표 €5,000</span>
                 </div>
-                <div class="w-full bg-orange-900/20 rounded-full h-4 overflow-hidden border border-orange-400/30">
+                <div class="w-full bg-orange-900/20 rounded-full h-4 overflow-hidden border border-orange-400/30 shadow-inner">
                     <div id="progressBar" class="bg-gradient-to-r from-green-300 to-emerald-400 h-full transition-all duration-1000" style="width: 0%;"></div>
                 </div>
-                <p class="mt-4 text-xs text-orange-50 font-medium opacity-80">※ 후원금은 선교팀 활동을 위해 전액 사용됩니다.</p>
+                <p class="mt-4 text-xs text-orange-50 font-medium opacity-80">※ 모든 후원금은 선교팀 활동을 위해 전액 사용됩니다.</p>
             </div>
-            <span class="absolute -right-10 -bottom-10 text-[150px] opacity-10 rotate-12 text-white font-black">CAROTE</span>
+            <span class="absolute -right-10 -bottom-10 text-[180px] opacity-20 rotate-12 transform select-none">🥕</span>
         </div>
     </section>
 
     <main class="max-w-7xl mx-auto px-5 py-12">
         <div id="loading" class="flex flex-col items-center py-20">
-            <div class="loading-spinner border-4 border-gray-200 border-t-orange-500 rounded-full w-10 h-10 animate-spin mb-4"></div>
-            <p class="text-gray-400 font-medium">물품 목록을 동기화 중...</p>
+            <div class="loading-spinner border-4 border-gray-100 border-t-orange-500 rounded-full w-10 h-10 animate-spin mb-4"></div>
+            <p class="text-gray-400 font-medium">물품 목록을 가져오고 있어요...</p>
         </div>
 
         <div id="content" class="hidden">
@@ -73,7 +73,7 @@
             
             <div class="relative flex-shrink-0 group/slider">
                 <div id="modalImages" class="flex overflow-x-auto snap-x no-scrollbar aspect-square bg-gray-100" onscroll="updateImgIndex(this)">
-                    </div>
+                </div>
                 <button id="prevBtn" onclick="scrollSlider(-1)" class="absolute left-4 top-1/2 -translate-y-1/2 bg-black/30 text-white w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm hidden hover:bg-black/50 transition-all">❮</button>
                 <button id="nextBtn" onclick="scrollSlider(1)" class="absolute right-4 top-1/2 -translate-y-1/2 bg-black/30 text-white w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm hidden hover:bg-black/50 transition-all">❯</button>
                 
@@ -89,7 +89,7 @@
                 </div>
                 <h2 id="modalName" class="text-2xl font-black text-gray-900 mb-2 tracking-tight"></h2>
                 <p id="modalSeller" class="text-xs font-bold text-orange-500 mb-6 flex items-center gap-1">
-                    <span class="bg-orange-100 px-2 py-0.5 rounded text-[9px] uppercase">Seller</span>
+                    <span class="bg-orange-100 px-2 py-0.5 rounded text-[9px] uppercase tracking-tighter">Seller</span>
                     <span id="sellerName"></span>
                 </p>
                 <p id="modalDesc" class="text-sm text-gray-600 leading-relaxed mb-8 whitespace-pre-wrap"></p>
@@ -148,16 +148,16 @@
                 const imgs = p.img.split(';').map(s => s.trim());
                 return `
                 <div class="bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-gray-50 flex flex-col cursor-pointer group" onclick="openModal('${p.id}')">
-                    <div class="aspect-square bg-gray-100 relative overflow-hidden">
-                        <img src="${imgs[0] || 'https://via.placeholder.com/400'}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 shadow-inner">
-                        <div class="absolute top-3 left-3">
+                    <div class="aspect-square bg-gray-50 relative overflow-hidden">
+                        <img src="${imgs[0] || 'https://via.placeholder.com/400'}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                        <div class="absolute top-4 left-4">
                             <span class="text-[9px] font-black ${getStatusColor(p.status)} text-white px-2.5 py-1 rounded-lg uppercase shadow-sm tracking-tighter">${p.status}</span>
                         </div>
-                        ${imgs.length > 1 ? `<span class="absolute top-3 right-3 text-[9px] bg-black/40 text-white px-2 py-1 rounded-md backdrop-blur-md font-bold">📸 ${imgs.length}</span>` : ''}
+                        ${imgs.length > 1 ? `<span class="absolute top-4 right-4 text-[9px] bg-black/40 text-white px-2 py-1 rounded-md backdrop-blur-md font-bold">📸 ${imgs.length}</span>` : ''}
                     </div>
-                    <div class="p-4 md:p-6">
+                    <div class="p-6">
                         <h4 class="font-bold text-gray-800 text-sm md:text-base line-clamp-1 mb-1 group-hover:text-orange-500 transition-colors">${p.name}</h4>
-                        <p class="text-xl font-black text-orange-500 tracking-tighter">€${p.price}</p>
+                        <p class="text-xl font-black text-orange-500 tracking-tighter font-mono">€${p.price}</p>
                     </div>
                 </div>`;
             }).join('');
@@ -199,10 +199,22 @@
             document.body.classList.add('modal-open');
         }
 
-        // 화살표 클릭 시 슬라이드 이동 함수
+        // 사진 루프(Infinite Loop) 기능을 포함한 스크롤 함수
         function scrollSlider(direction) {
             const container = document.getElementById('modalImages');
-            container.scrollBy({ left: direction * container.clientWidth, behavior: 'smooth' });
+            const total = parseInt(document.getElementById('totalIdx').innerText);
+            const current = parseInt(document.getElementById('currIdx').innerText);
+
+            if (direction === 1 && current === total) {
+                // 마지막 사진에서 다음 클릭 -> 첫 번째 사진으로
+                container.scrollTo({ left: 0, behavior: 'smooth' });
+            } else if (direction === -1 && current === 1) {
+                // 첫 번째 사진에서 이전 클릭 -> 마지막 사진으로
+                container.scrollTo({ left: container.clientWidth * (total - 1), behavior: 'smooth' });
+            } else {
+                // 일반적인 이동
+                container.scrollBy({ left: direction * container.clientWidth, behavior: 'smooth' });
+            }
         }
 
         function updateImgIndex(el) {
@@ -225,7 +237,7 @@
             if (status !== '판매중') { alert('이미 예약 중이거나 거래 완료된 물품입니다.'); return; }
             const msg = `안녕하세요, @${seller} 님! 한마음 CAROTE에서 본 [${name}] 제품 €${price}에 구매 예약 희망합니다.`;
             navigator.clipboard.writeText(msg).then(() => {
-                if (confirm(`🎉 구매 예약을 진행하시겠습니까?\n\n"${msg}"\n\n문구가 복사되었습니다. 거래 단톡방에 붙여넣기(Ctrl+V) 해주세요.`)) {
+                if (confirm(`🎉 구매 예약을 진행하시겠습니까?\n\n"${msg}"\n\n문구가 복사되었습니다. 거래 단톡방에 붙여넣기 해주세요.`)) {
                     window.open(TRADE_CHAT_URL, '_blank');
                 }
             });
