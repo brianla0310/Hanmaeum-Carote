@@ -13,6 +13,21 @@
         .snap-x { scroll-snap-type: x mandatory; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
         .snap-center { scroll-snap-align: center; }
         .modal-open { overflow: hidden; }
+
+        /* 1. 당근 모노그램 패턴 배경 정의 (텍스트 절대 없음) */
+        .carrot-pattern {
+            background-color: #f97316;
+            background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 10c0-2 2-4 4-4s4 2 4 4-4 10-8 16c-4-6-8-14-8-16s2-4 4-4 4 2 4 4z' fill='%23ffffff' fill-opacity='0.15' fill-rule='evenodd'/%3E%3C/svg%3E");
+        }
+
+        /* 2. 불타는 HOT 아이콘 애니메이션 */
+        @keyframes flicker {
+            0% { transform: scale(1) rotate(-2deg); opacity: 0.9; }
+            50% { transform: scale(1.1) rotate(2deg); opacity: 1; }
+            100% { transform: scale(1) rotate(-2deg); opacity: 0.9; }
+        }
+        .fire-icon { animation: flicker 0.5s infinite alternate; }
+
         @media (min-width: 768px) {
             .desktop-modal-height { height: 640px !important; }
             .info-scroll-area { height: calc(640px - 180px); overflow-y: auto; }
@@ -37,31 +52,27 @@
     </header>
 
     <section class="max-w-7xl mx-auto px-5 mt-8">
-        <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-[2rem] p-8 text-white shadow-xl relative overflow-hidden">
+        <div class="carrot-pattern rounded-[2rem] p-8 text-white shadow-xl relative overflow-hidden">
             <div class="relative z-10">
-                <h2 class="text-2xl md:text-3xl font-black mb-2 tracking-tight text-orange-50">사랑나눔 헌금 현황</h2>
+                <h2 class="text-2xl md:text-3xl font-black mb-2 tracking-tight opacity-95">사랑나눔 헌금 현황</h2>
                 <div class="flex items-baseline gap-2 mb-6">
-                    <span id="progressAmount" class="text-4xl font-black text-white">€0</span>
+                    <span id="progressAmount" class="text-5xl font-black text-white">€0</span>
                     <span class="text-orange-100 text-sm font-bold opacity-80">/ 목표 €5,000</span>
                 </div>
-                <div class="w-full bg-orange-900/20 rounded-full h-4 overflow-hidden border border-orange-400/30 shadow-inner">
+                <div class="w-full bg-black/10 rounded-full h-4 overflow-hidden border border-white/20 shadow-inner">
                     <div id="progressBar" class="bg-gradient-to-r from-green-300 to-emerald-400 h-full transition-all duration-1000" style="width: 0%;"></div>
                 </div>
-                <p id="progressPercent" class="mt-4 text-xs text-orange-50 font-bold opacity-90">현재 달성률: 0%</p>
+                <p id="progressPercent" class="mt-4 text-xs text-orange-50 font-black opacity-90 uppercase tracking-widest font-bold">Goal Status: 0% Achieved</p>
             </div>
-            <span class="absolute -right-10 -bottom-10 text-[180px] opacity-20 rotate-12 transform select-none font-black text-white">CAROTE</span>
-        </div>
+            </div>
     </section>
 
     <main id="market-top" class="max-w-7xl mx-auto px-5 py-12">
-        <div id="loading" class="flex flex-col items-center py-20">
-            <div class="loading-spinner border-4 border-gray-100 border-t-orange-500 rounded-full w-10 h-10 animate-spin mb-4"></div>
-            <p class="text-gray-400 font-bold">물품 정보를 동기화 중입니다...</p>
-        </div>
+        <div id="loading" class="flex flex-col items-center py-20 text-gray-400 font-bold">물품 정보를 동기화 중입니다...</div>
 
         <div id="content" class="hidden">
             <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
-                <h3 class="text-2xl font-bold text-gray-800 tracking-tight font-black">나눔 물품 목록</h3>
+                <h3 class="text-2xl font-black text-gray-800 tracking-tight font-black">나눔 물품 목록</h3>
                 <div id="filterGroup" class="flex flex-wrap justify-center gap-2"></div>
             </div>
             <div id="productGrid" class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8"></div>
@@ -70,23 +81,25 @@
 
     <div id="detailModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeModal()"></div>
-        <div class="bg-white rounded-[2.5rem] w-full max-w-md md:max-w-5xl desktop-modal-height overflow-hidden relative shadow-2xl flex flex-col md:flex-row">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-md md:max-w-5xl desktop-modal-height overflow-hidden relative shadow-2xl flex flex-col md:flex-row font-bold">
             <button onclick="closeModal()" class="absolute top-4 right-4 z-[120] bg-black/20 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm backdrop-blur-md">✕</button>
             
             <div class="relative w-full md:w-[62.5%] h-[400px] md:h-full flex-shrink-0 bg-gray-50 border-r border-gray-50">
                 <div id="modalImages" class="flex h-full overflow-x-auto snap-x no-scrollbar" onscroll="updateImgIndex(this)"></div>
                 <button id="prevBtn" onclick="scrollSlider(-1)" class="absolute left-4 top-1/2 -translate-y-1/2 bg-black/30 text-white w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm hidden hover:bg-black/50 transition-all font-bold">❮</button>
                 <button id="nextBtn" onclick="scrollSlider(1)" class="absolute right-4 top-1/2 -translate-y-1/2 bg-black/30 text-white w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm hidden hover:bg-black/50 transition-all font-bold">❯</button>
-                <div id="imgBadge" class="absolute top-4 left-4 bg-black/50 text-white text-[10px] px-2.5 py-1 rounded-full backdrop-blur-sm font-bold hidden tracking-tighter font-mono">
+                <div id="imgBadge" class="absolute top-4 left-4 bg-black/50 text-white text-[10px] px-2.5 py-1 rounded-full backdrop-blur-sm font-bold hidden tracking-tighter font-mono font-bold">
                     <span id="currIdx">1</span> / <span id="totalIdx">1</span>
                 </div>
             </div>
 
             <div class="w-full md:w-[37.5%] flex flex-col bg-white h-full relative">
                 <div class="p-8 pb-0">
-                    <div class="flex gap-2 mb-3">
-                        <span id="modalCategory" onclick="handleCategoryClickFromModal()" class="text-[9px] font-black bg-orange-50 text-orange-600 px-3 py-1.5 rounded-full uppercase cursor-pointer hover:bg-orange-100 transition-colors"></span>
-                        <span id="modalStatus" class="text-[9px] font-black px-3 py-1.5 rounded-full text-white uppercase"></span>
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex gap-2">
+                            <span id="modalCategory" onclick="handleCategoryClickFromModal()" class="text-[9px] font-black bg-orange-50 text-orange-600 px-3 py-1.5 rounded-full uppercase cursor-pointer hover:bg-orange-100 transition-colors"></span>
+                            <span id="modalStatus" class="text-[9px] font-black px-3 py-1.5 rounded-full text-white uppercase font-bold"></span>
+                        </div>
                     </div>
                     <h2 id="modalName" class="text-xl md:text-2xl font-black text-gray-900 mb-2 tracking-tight leading-tight"></h2>
                     <p class="text-[11px] font-bold text-orange-500 mb-4 flex items-center gap-1">
@@ -96,7 +109,7 @@
                 </div>
 
                 <div class="px-8 flex-1 overflow-y-auto no-scrollbar info-scroll-area">
-                    <div id="modalDesc" class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap"></div>
+                    <div id="modalDesc" class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap font-bold"></div>
                 </div>
 
                 <div class="p-8 border-t border-gray-50 bg-white flex flex-col gap-3">
@@ -104,7 +117,7 @@
                         <span class="text-xs font-bold text-gray-400">희망 기부금</span>
                         <span id="modalPrice" class="text-3xl font-black text-gray-900 tracking-tighter"></span>
                     </div>
-                    <button id="modalReserveBtn" class="w-full bg-orange-500 text-white py-4 rounded-2xl font-black shadow-lg shadow-orange-100 hover:bg-orange-600 active:scale-95 transition-all text-sm font-bold">예약하기</button>
+                    <button id="modalReserveBtn" class="w-full bg-orange-500 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-orange-100 hover:bg-orange-600 active:scale-95 transition-all text-sm font-bold font-bold tracking-tight">예약하기</button>
                 </div>
             </div>
         </div>
@@ -149,7 +162,7 @@
             const progressPercent = Math.min((totalEarned / TARGET_GOAL) * 100, 100);
             document.getElementById('progressAmount').innerText = `€${totalEarned.toLocaleString()}`;
             document.getElementById('progressBar').style.width = `${progressPercent}%`;
-            document.getElementById('progressPercent').innerText = `현재 달성률: ${progressPercent.toFixed(1)}% (${totalEarned.toLocaleString()}€ / 5,000€)`;
+            document.getElementById('progressPercent').innerText = `Goal Status: ${progressPercent.toFixed(1)}% (${totalEarned.toLocaleString()}€ / 5,000€)`;
         }
 
         function renderFilters() {
@@ -166,21 +179,28 @@
             const grid = document.getElementById('productGrid');
             grid.innerHTML = items.map(p => {
                 const imgs = p.img.split(';').map(s => s.trim());
+                
+                // [HOT 배지] is_hot이 'y'인 경우에만 활활 타오르는 아이콘 추가
+                const hotBadge = (p.is_hot && p.is_hot.toLowerCase() === 'y') ? 
+                    `<div class="absolute top-4 right-4 z-10 bg-red-600 text-white px-2.5 py-1.5 rounded-lg text-[11px] font-extrabold flex items-center gap-1.5 shadow-2xl fire-icon">
+                        <span>🔥</span> HOT
+                    </div>` : '';
+
                 return `
-                <div class="bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-gray-50 flex flex-col group h-full cursor-pointer" onclick="openModal('${p.id}')">
-                    <div class="aspect-square bg-gray-50 relative overflow-hidden">
+                <div class="bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-gray-50 flex flex-col cursor-pointer group h-full relative" onclick="openModal('${p.id}')">
+                    ${hotBadge} <div class="aspect-square bg-gray-50 relative overflow-hidden">
                         <img src="${imgs[0] || 'https://via.placeholder.com/400'}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 shadow-inner">
-                        <div class="absolute top-4 left-4 flex gap-1 items-center">
-                            <span class="text-[9px] font-black ${getStatusColor(p.status)} text-white px-2.5 py-1 rounded-lg uppercase shadow-sm tracking-tighter">${p.status}</span>
+                        <div class="absolute top-4 left-4 flex gap-1 items-center z-10">
+                            <span class="text-[9px] font-black ${getStatusColor(p.status)} text-white px-2.5 py-1 rounded-lg uppercase shadow-sm tracking-tighter font-bold">${p.status}</span>
                             <span onclick="event.stopPropagation(); applyFilter('${p.category}')" class="text-[9px] font-black bg-white/80 backdrop-blur-sm text-gray-700 px-2.5 py-1 rounded-lg uppercase shadow-sm border border-gray-100 hover:bg-orange-500 hover:text-white transition-colors">
                                 ${p.category}
                             </span>
                         </div>
-                        ${imgs.length > 1 ? `<span class="absolute top-4 right-4 text-[9px] bg-black/40 text-white px-2 py-1 rounded-md backdrop-blur-md font-bold tracking-tighter">📸 ${imgs.length}</span>` : ''}
+                        ${imgs.length > 1 ? `<span class="absolute top-4 right-4 text-[9px] bg-black/40 text-white px-2 py-1 rounded-md backdrop-blur-md font-bold tracking-tighter z-10">📸 ${imgs.length}</span>` : ''}
                     </div>
-                    <div class="p-6 flex-grow">
-                        <h4 class="font-bold text-gray-800 text-sm md:text-base line-clamp-1 mb-1 group-hover:text-orange-500 transition-colors font-bold">${p.name}</h4>
-                        <p class="text-xl font-black text-orange-500 tracking-tighter font-mono">€${p.price}</p>
+                    <div class="p-6 flex-grow relative">
+                        <h4 class="font-bold text-gray-800 text-sm md:text-base line-clamp-1 mb-1 group-hover:text-orange-500 transition-colors font-black font-bold font-bold leading-tight">${p.name}</h4>
+                        <p class="text-xl font-black text-orange-500 tracking-tighter font-mono font-bold">€${p.price}</p>
                     </div>
                 </div>`;
             }).join('');
@@ -196,6 +216,7 @@
             document.getElementById('sellerName').innerText = p.seller;
             document.getElementById('modalDesc').innerText = p.desc;
             document.getElementById('modalPrice').innerText = '€' + p.price;
+
             const imgContainer = document.getElementById('modalImages');
             const images = p.img.split(';').map(url => url.trim()).filter(url => url !== "");
             imgContainer.innerHTML = images.map(url => `
@@ -217,12 +238,10 @@
             document.body.classList.add('modal-open');
         }
 
-        // 모달에서 카테고리 클릭 시 처리
         function handleCategoryClickFromModal() {
             const cat = document.getElementById('modalCategory').innerText;
             closeModal();
             applyFilter(cat);
-            // 필터된 위치로 스크롤
             document.getElementById('market-top').scrollIntoView({ behavior: 'smooth' });
         }
 
@@ -266,7 +285,6 @@
             const filtered = cat === '전체' ? allProducts : allProducts.filter(p => p.category === cat);
             renderItems(filtered);
             renderFilters();
-            // 필터 클릭 시 목록 상단으로 부드럽게 스크롤
             document.getElementById('market-top').scrollIntoView({ behavior: 'smooth' });
         }
 
