@@ -7,15 +7,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700;900&display=swap');
-        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; color: #1f2937; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; color: #1f2937; -webkit-tap-highlight-color: transparent; scroll-behavior: smooth; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .chip-active { background-color: #f97316 !important; color: white !important; border-color: #f97316 !important; }
         .snap-x { scroll-snap-type: x mandatory; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
         .snap-center { scroll-snap-align: center; }
         .modal-open { overflow: hidden; }
-        /* 데스크탑 레이아웃 세부 조정 */
         @media (min-width: 768px) {
-            .desktop-modal-height { height: 640px !important; } /* 높이를 살짝 높여 시원하게 배치 */
+            .desktop-modal-height { height: 640px !important; }
             .info-scroll-area { height: calc(640px - 180px); overflow-y: auto; }
         }
     </style>
@@ -50,18 +49,18 @@
                 </div>
                 <p id="progressPercent" class="mt-4 text-xs text-orange-50 font-bold opacity-90">현재 달성률: 0%</p>
             </div>
-            <span class="absolute -right-10 -bottom-10 text-[180px] opacity-20 rotate-12 transform select-none">🥕</span>
+            <span class="absolute -right-10 -bottom-10 text-[180px] opacity-20 rotate-12 transform select-none font-black text-white">CAROTE</span>
         </div>
     </section>
 
-    <main class="max-w-7xl mx-auto px-5 py-12">
+    <main id="market-top" class="max-w-7xl mx-auto px-5 py-12">
         <div id="loading" class="flex flex-col items-center py-20">
             <div class="loading-spinner border-4 border-gray-100 border-t-orange-500 rounded-full w-10 h-10 animate-spin mb-4"></div>
-            <p class="text-gray-400 font-medium font-bold">물품 정보를 동기화 중입니다...</p>
+            <p class="text-gray-400 font-bold">물품 정보를 동기화 중입니다...</p>
         </div>
 
         <div id="content" class="hidden">
-            <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6 text-center">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
                 <h3 class="text-2xl font-bold text-gray-800 tracking-tight font-black">나눔 물품 목록</h3>
                 <div id="filterGroup" class="flex flex-wrap justify-center gap-2"></div>
             </div>
@@ -71,42 +70,41 @@
 
     <div id="detailModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeModal()"></div>
-        
         <div class="bg-white rounded-[2.5rem] w-full max-w-md md:max-w-5xl desktop-modal-height overflow-hidden relative shadow-2xl flex flex-col md:flex-row">
-            <button onclick="closeModal()" class="absolute top-4 right-4 z-[120] bg-black/20 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm backdrop-blur-md hover:bg-black/40">✕</button>
+            <button onclick="closeModal()" class="absolute top-4 right-4 z-[120] bg-black/20 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm backdrop-blur-md">✕</button>
             
             <div class="relative w-full md:w-[62.5%] h-[400px] md:h-full flex-shrink-0 bg-gray-50 border-r border-gray-50">
                 <div id="modalImages" class="flex h-full overflow-x-auto snap-x no-scrollbar" onscroll="updateImgIndex(this)"></div>
-                <button id="prevBtn" onclick="scrollSlider(-1)" class="absolute left-4 top-1/2 -translate-y-1/2 bg-black/30 text-white w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm hidden hover:bg-black/50 transition-all">❮</button>
-                <button id="nextBtn" onclick="scrollSlider(1)" class="absolute right-4 top-1/2 -translate-y-1/2 bg-black/30 text-white w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm hidden hover:bg-black/50 transition-all">❯</button>
-                <div id="imgBadge" class="absolute top-4 left-4 bg-black/50 text-white text-[10px] px-2.5 py-1 rounded-full backdrop-blur-sm font-bold hidden">
+                <button id="prevBtn" onclick="scrollSlider(-1)" class="absolute left-4 top-1/2 -translate-y-1/2 bg-black/30 text-white w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm hidden hover:bg-black/50 transition-all font-bold">❮</button>
+                <button id="nextBtn" onclick="scrollSlider(1)" class="absolute right-4 top-1/2 -translate-y-1/2 bg-black/30 text-white w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm hidden hover:bg-black/50 transition-all font-bold">❯</button>
+                <div id="imgBadge" class="absolute top-4 left-4 bg-black/50 text-white text-[10px] px-2.5 py-1 rounded-full backdrop-blur-sm font-bold hidden tracking-tighter font-mono">
                     <span id="currIdx">1</span> / <span id="totalIdx">1</span>
                 </div>
             </div>
 
             <div class="w-full md:w-[37.5%] flex flex-col bg-white h-full relative">
-                <div class="p-6 md:p-8 pb-0">
+                <div class="p-8 pb-0">
                     <div class="flex gap-2 mb-3">
-                        <span id="modalCategory" class="text-[9px] font-black bg-orange-50 text-orange-600 px-3 py-1.5 rounded-full uppercase"></span>
+                        <span id="modalCategory" onclick="handleCategoryClickFromModal()" class="text-[9px] font-black bg-orange-50 text-orange-600 px-3 py-1.5 rounded-full uppercase cursor-pointer hover:bg-orange-100 transition-colors"></span>
                         <span id="modalStatus" class="text-[9px] font-black px-3 py-1.5 rounded-full text-white uppercase"></span>
                     </div>
                     <h2 id="modalName" class="text-xl md:text-2xl font-black text-gray-900 mb-2 tracking-tight leading-tight"></h2>
                     <p class="text-[11px] font-bold text-orange-500 mb-4 flex items-center gap-1">
-                        <span class="bg-orange-100 px-2 py-0.5 rounded text-[8px] uppercase tracking-tighter font-black">Seller</span>
-                        <span id="sellerName" class="text-gray-700"></span>
+                        <span class="bg-orange-100 px-2 py-0.5 rounded text-[8px] uppercase font-black">Seller</span>
+                        <span id="sellerName" class="text-gray-700 font-bold"></span>
                     </p>
                 </div>
 
-                <div class="px-6 md:px-8 flex-1 overflow-y-auto no-scrollbar info-scroll-area">
+                <div class="px-8 flex-1 overflow-y-auto no-scrollbar info-scroll-area">
                     <div id="modalDesc" class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap"></div>
                 </div>
 
-                <div class="p-6 md:p-8 border-t border-gray-50 bg-white flex flex-col gap-3">
+                <div class="p-8 border-t border-gray-50 bg-white flex flex-col gap-3">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-bold text-gray-400">희망 기부금</span>
                         <span id="modalPrice" class="text-3xl font-black text-gray-900 tracking-tighter"></span>
                     </div>
-                    <button id="modalReserveBtn" class="w-full bg-orange-500 text-white py-4 rounded-2xl font-black shadow-lg shadow-orange-100 hover:bg-orange-600 active:scale-95 transition-all text-sm">예약하기</button>
+                    <button id="modalReserveBtn" class="w-full bg-orange-500 text-white py-4 rounded-2xl font-black shadow-lg shadow-orange-100 hover:bg-orange-600 active:scale-95 transition-all text-sm font-bold">예약하기</button>
                 </div>
             </div>
         </div>
@@ -148,9 +146,7 @@
             const totalEarned = allProducts
                 .filter(p => p.status === '판매완료')
                 .reduce((sum, p) => sum + (parseFloat(p.price) || 0), 0);
-            
             const progressPercent = Math.min((totalEarned / TARGET_GOAL) * 100, 100);
-            
             document.getElementById('progressAmount').innerText = `€${totalEarned.toLocaleString()}`;
             document.getElementById('progressBar').style.width = `${progressPercent}%`;
             document.getElementById('progressPercent').innerText = `현재 달성률: ${progressPercent.toFixed(1)}% (${totalEarned.toLocaleString()}€ / 5,000€)`;
@@ -171,17 +167,20 @@
             grid.innerHTML = items.map(p => {
                 const imgs = p.img.split(';').map(s => s.trim());
                 return `
-                <div class="bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-gray-50 flex flex-col cursor-pointer group h-full" onclick="openModal('${p.id}')">
+                <div class="bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-gray-50 flex flex-col group h-full cursor-pointer" onclick="openModal('${p.id}')">
                     <div class="aspect-square bg-gray-50 relative overflow-hidden">
                         <img src="${imgs[0] || 'https://via.placeholder.com/400'}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 shadow-inner">
-                        <div class="absolute top-4 left-4">
+                        <div class="absolute top-4 left-4 flex gap-1 items-center">
                             <span class="text-[9px] font-black ${getStatusColor(p.status)} text-white px-2.5 py-1 rounded-lg uppercase shadow-sm tracking-tighter">${p.status}</span>
+                            <span onclick="event.stopPropagation(); applyFilter('${p.category}')" class="text-[9px] font-black bg-white/80 backdrop-blur-sm text-gray-700 px-2.5 py-1 rounded-lg uppercase shadow-sm border border-gray-100 hover:bg-orange-500 hover:text-white transition-colors">
+                                ${p.category}
+                            </span>
                         </div>
-                        ${imgs.length > 1 ? `<span class="absolute top-4 right-4 text-[9px] bg-black/40 text-white px-2 py-1 rounded-md backdrop-blur-md font-bold">📸 ${imgs.length}</span>` : ''}
+                        ${imgs.length > 1 ? `<span class="absolute top-4 right-4 text-[9px] bg-black/40 text-white px-2 py-1 rounded-md backdrop-blur-md font-bold tracking-tighter">📸 ${imgs.length}</span>` : ''}
                     </div>
                     <div class="p-6 flex-grow">
-                        <h4 class="font-bold text-gray-800 text-sm md:text-base line-clamp-1 mb-1 group-hover:text-orange-500 transition-colors font-black">${p.name}</h4>
-                        <p class="text-xl font-black text-orange-500 tracking-tighter font-black font-mono">€${p.price}</p>
+                        <h4 class="font-bold text-gray-800 text-sm md:text-base line-clamp-1 mb-1 group-hover:text-orange-500 transition-colors font-bold">${p.name}</h4>
+                        <p class="text-xl font-black text-orange-500 tracking-tighter font-mono">€${p.price}</p>
                     </div>
                 </div>`;
             }).join('');
@@ -190,7 +189,6 @@
         function openModal(id) {
             const p = allProducts.find(item => item.id == id);
             if(!p) return;
-
             document.getElementById('modalName').innerText = p.name;
             document.getElementById('modalCategory').innerText = p.category;
             document.getElementById('modalStatus').innerText = p.status;
@@ -198,18 +196,15 @@
             document.getElementById('sellerName').innerText = p.seller;
             document.getElementById('modalDesc').innerText = p.desc;
             document.getElementById('modalPrice').innerText = '€' + p.price;
-
             const imgContainer = document.getElementById('modalImages');
             const images = p.img.split(';').map(url => url.trim()).filter(url => url !== "");
             imgContainer.innerHTML = images.map(url => `
                 <img src="${url}" class="w-full h-full object-cover flex-shrink-0 snap-center shadow-inner" onerror="this.src='https://via.placeholder.com/400?text=Image+Error'">
             `).join('');
-
             imgContainer.scrollLeft = 0;
             const badge = document.getElementById('imgBadge');
             const pBtn = document.getElementById('prevBtn');
             const nBtn = document.getElementById('nextBtn');
-
             if(images.length > 1) {
                 [badge, pBtn, nBtn].forEach(el => el.classList.remove('hidden'));
                 document.getElementById('currIdx').innerText = "1";
@@ -217,10 +212,18 @@
             } else {
                 [badge, pBtn, nBtn].forEach(el => el.classList.add('hidden'));
             }
-
             document.getElementById('modalReserveBtn').onclick = () => reserve(p.name, p.price, p.status, p.seller);
             document.getElementById('detailModal').classList.remove('hidden');
             document.body.classList.add('modal-open');
+        }
+
+        // 모달에서 카테고리 클릭 시 처리
+        function handleCategoryClickFromModal() {
+            const cat = document.getElementById('modalCategory').innerText;
+            closeModal();
+            applyFilter(cat);
+            // 필터된 위치로 스크롤
+            document.getElementById('market-top').scrollIntoView({ behavior: 'smooth' });
         }
 
         function scrollSlider(direction) {
@@ -252,7 +255,7 @@
             if (status !== '판매중') { alert('이미 예약 중이거나 거래 완료된 물품입니다.'); return; }
             const msg = `안녕하세요, @${seller} 님! 한마음 CAROTE에서 본 [${name}] 제품 €${price}에 구매 예약 희망합니다.`;
             navigator.clipboard.writeText(msg).then(() => {
-                if (confirm(`🎉 구매 예약을 진행하시겠습니까?\n\n"${msg}"\n\n문구가 복사되었습니다. 거래 단톡방에 붙여넣기 해주세요.`)) {
+                if (confirm(`🎉 구매 예약을 진행하시겠습니까?\n\n"${msg}"\n\n문구가 복사되었습니다. 거래 단톡방에 붙여넣기(Ctrl+V) 해주세요.`)) {
                     window.open(TRADE_CHAT_URL, '_blank');
                 }
             });
@@ -263,6 +266,8 @@
             const filtered = cat === '전체' ? allProducts : allProducts.filter(p => p.category === cat);
             renderItems(filtered);
             renderFilters();
+            // 필터 클릭 시 목록 상단으로 부드럽게 스크롤
+            document.getElementById('market-top').scrollIntoView({ behavior: 'smooth' });
         }
 
         loadData();
