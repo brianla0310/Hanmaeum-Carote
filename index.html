@@ -25,7 +25,7 @@
                 <span>🥕</span> 한마음 CAROTE
             </h1>
             <div class="flex gap-2">
-                <a href="https://open.kakao.com/o/gaBbnCpi" target="_blank" class="bg-gray-100 text-gray-600 px-4 py-2 rounded-full text-xs font-bold hover:bg-gray-200 transition-all">기부/물품등록</a>
+                <a href="https://open.kakao.com/o/gaBbnCpi" target="_blank" class="bg-orange-50 text-orange-600 border border-orange-200 px-4 py-2 rounded-full text-xs font-bold hover:bg-orange-100 transition-all">기부/물품등록</a>
                 <a href="https://open.kakao.com/o/gH1SjEpi" target="_blank" class="bg-[#FEE500] text-[#3C1E1E] px-4 py-2 rounded-full text-xs font-bold shadow-sm hover:bg-[#FADA00] transition-all flex items-center gap-1.5">
                     <img src="https://upload.wikimedia.org/wikipedia/commons/e/e3/KakaoTalk_logo.svg" class="w-3.5 h-3.5" alt="K">
                     거래/문의
@@ -60,7 +60,7 @@
         <div id="content" class="hidden">
             <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
                 <h3 class="text-2xl font-bold text-gray-800 tracking-tight">나눔 물품 목록</h3>
-                <div id="filterGroup" class="flex flex-wrap gap-2"></div>
+                <div id="filterGroup" class="flex flex-wrap justify-center gap-2"></div>
             </div>
             <div id="productGrid" class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8"></div>
         </div>
@@ -68,28 +68,33 @@
 
     <div id="detailModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeModal()"></div>
-        <div class="bg-white rounded-[2.5rem] w-full max-w-md max-h-[90vh] overflow-hidden relative shadow-2xl flex flex-col">
-            <button onclick="closeModal()" class="absolute top-4 right-4 z-50 bg-black/20 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm backdrop-blur-md hover:bg-black/40">✕</button>
-            <div class="relative flex-shrink-0 group/slider">
-                <div id="modalImages" class="flex overflow-x-auto snap-x no-scrollbar aspect-square bg-gray-100" onscroll="updateImgIndex(this)"></div>
-                <button id="prevBtn" onclick="scrollSlider(-1)" class="absolute left-4 top-1/2 -translate-y-1/2 bg-black/30 text-white w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm hidden">❮</button>
-                <button id="nextBtn" onclick="scrollSlider(1)" class="absolute right-4 top-1/2 -translate-y-1/2 bg-black/30 text-white w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm hidden">❯</button>
+        <div class="bg-white rounded-[2.5rem] w-full max-w-md md:max-w-4xl h-auto md:h-[600px] overflow-hidden relative shadow-2xl flex flex-col md:flex-row">
+            <button onclick="closeModal()" class="absolute top-4 right-4 z-[110] bg-black/20 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm backdrop-blur-md hover:bg-black/40">✕</button>
+            
+            <div class="relative w-full md:w-1/2 flex-shrink-0 bg-gray-100">
+                <div id="modalImages" class="flex overflow-x-auto snap-x no-scrollbar aspect-square md:h-full bg-gray-100" onscroll="updateImgIndex(this)"></div>
+                <button id="prevBtn" onclick="scrollSlider(-1)" class="absolute left-4 top-1/2 -translate-y-1/2 bg-black/30 text-white w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm hidden hover:bg-black/50 transition-all">❮</button>
+                <button id="nextBtn" onclick="scrollSlider(1)" class="absolute right-4 top-1/2 -translate-y-1/2 bg-black/30 text-white w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm hidden hover:bg-black/50 transition-all">❯</button>
                 <div id="imgBadge" class="absolute top-4 left-4 bg-black/50 text-white text-[10px] px-2.5 py-1 rounded-full backdrop-blur-sm font-bold hidden">
                     <span id="currIdx">1</span> / <span id="totalIdx">1</span>
                 </div>
             </div>
-            <div class="p-8 overflow-y-auto no-scrollbar">
-                <div class="flex gap-2 mb-4">
-                    <span id="modalCategory" class="text-[10px] font-black bg-orange-50 text-orange-600 px-3 py-1 rounded-full uppercase"></span>
-                    <span id="modalStatus" class="text-[10px] font-black px-3 py-1.5 rounded-full text-white uppercase"></span>
+
+            <div class="w-full md:w-1/2 flex flex-col p-8 bg-white overflow-hidden">
+                <div class="flex-grow overflow-y-auto no-scrollbar pb-6">
+                    <div class="flex gap-2 mb-4">
+                        <span id="modalCategory" class="text-[10px] font-black bg-orange-50 text-orange-600 px-3 py-1.5 rounded-full uppercase"></span>
+                        <span id="modalStatus" class="text-[10px] font-black px-3 py-1.5 rounded-full text-white uppercase"></span>
+                    </div>
+                    <h2 id="modalName" class="text-2xl font-black text-gray-900 mb-2 tracking-tight leading-tight"></h2>
+                    <p id="modalSeller" class="text-xs font-bold text-orange-500 mb-6 flex items-center gap-1">
+                        <span class="bg-orange-100 px-2 py-0.5 rounded text-[9px] uppercase tracking-tighter">Seller</span>
+                        <span id="sellerName"></span>
+                    </p>
+                    <div id="modalDesc" class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap"></div>
                 </div>
-                <h2 id="modalName" class="text-2xl font-black text-gray-900 mb-2 tracking-tight"></h2>
-                <p id="modalSeller" class="text-xs font-bold text-orange-500 mb-6 flex items-center gap-1">
-                    <span class="bg-orange-100 px-2 py-0.5 rounded text-[9px] uppercase tracking-tighter">Seller</span>
-                    <span id="sellerName"></span>
-                </p>
-                <p id="modalDesc" class="text-sm text-gray-600 leading-relaxed mb-8 whitespace-pre-wrap"></p>
-                <div class="flex items-center justify-between pt-6 border-t border-gray-100 sticky bottom-0 bg-white">
+                
+                <div class="pt-6 border-t border-gray-100 mt-auto bg-white flex items-center justify-between">
                     <span id="modalPrice" class="text-3xl font-black text-gray-900 tracking-tighter"></span>
                     <button id="modalReserveBtn" class="bg-orange-500 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-orange-100 hover:bg-orange-600 active:scale-95 transition-all text-sm">예약하기</button>
                 </div>
@@ -100,7 +105,7 @@
     <script>
         const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRPlta6Z0joNP1yli805VHoF5oLLunjMBB6CA7kz9OZ8IdA_HMCjt0KrLM0mXXVCViK2pVDmg-9NDPI/pub?output=csv";
         const TRADE_CHAT_URL = "https://open.kakao.com/o/gH1SjEpi"; 
-        const TARGET_GOAL = 5000; // 목표 액수
+        const TARGET_GOAL = 5000;
         
         let allProducts = [];
         let currentFilter = '전체';
@@ -110,23 +115,18 @@
                 const response = await fetch(CSV_URL + "&t=" + Date.now());
                 const csvText = await response.text();
                 
-                // [수정] 띄어쓰기 문제를 해결하기 위한 강력한 CSV 파서
+                // 쉼표 기준 파싱 (공백 유지)
                 const rows = csvText.split(/\r?\n/).filter(r => r.trim() !== "");
                 const headers = rows[0].split(',').map(h => h.trim().toLowerCase());
                 
                 allProducts = rows.slice(1).map(row => {
-                    // [해결 1] 공백을 포함해도 쉼표(,)로만 정확히 분리하도록 수정
                     const values = row.split(',').map(v => v.trim());
                     let obj = {};
-                    headers.forEach((h, i) => {
-                        obj[h] = values[i] || "";
-                    });
+                    headers.forEach((h, i) => { obj[h] = values[i] || ""; });
                     return obj;
                 }).filter(p => p.name);
 
-                // [해결 2] 수익금 자동 정산 실행
                 calculateDonation();
-
                 renderFilters();
                 renderItems(allProducts);
                 document.getElementById('loading').style.display = 'none';
@@ -136,16 +136,13 @@
             }
         }
 
-        // 수익금 자동 합산 함수
         function calculateDonation() {
-            // status가 '판매완료'인 상품의 price만 합산
             const totalEarned = allProducts
                 .filter(p => p.status === '판매완료')
                 .reduce((sum, p) => sum + (parseFloat(p.price) || 0), 0);
             
             const progressPercent = Math.min((totalEarned / TARGET_GOAL) * 100, 100);
             
-            // UI 업데이트
             document.getElementById('progressAmount').innerText = `€${totalEarned.toLocaleString()}`;
             document.getElementById('progressBar').style.width = `${progressPercent}%`;
             document.getElementById('progressPercent').innerText = `현재 달성률: ${progressPercent.toFixed(1)}% (${totalEarned.toLocaleString()}€ / 5,000€)`;
@@ -153,8 +150,11 @@
 
         function renderFilters() {
             const cats = ['전체', ...new Set(allProducts.map(p => p.category).filter(c => c))];
-            document.getElementById('filterGroup').innerHTML = cats.map(c => `
-                <button onclick="applyFilter('${c}')" class="px-4 py-2 rounded-full text-xs font-bold border-2 transition-all ${c === currentFilter ? 'chip-active border-orange-500' : 'bg-white border-gray-100 text-gray-500 hover:border-orange-200'}">${c}</button>
+            const group = document.getElementById('filterGroup');
+            group.innerHTML = cats.map(c => `
+                <button onclick="applyFilter('${c}')" class="px-5 py-2.5 rounded-full text-xs font-bold border-2 transition-all ${c === currentFilter ? 'chip-active border-orange-500' : 'bg-white border-gray-100 text-gray-500 hover:border-orange-200'}">
+                    ${c}
+                </button>
             `).join('');
         }
 
@@ -163,7 +163,7 @@
             grid.innerHTML = items.map(p => {
                 const imgs = p.img.split(';').map(s => s.trim());
                 return `
-                <div class="bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-gray-50 flex flex-col cursor-pointer group" onclick="openModal('${p.id}')">
+                <div class="bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-gray-50 flex flex-col cursor-pointer group h-full" onclick="openModal('${p.id}')">
                     <div class="aspect-square bg-gray-50 relative overflow-hidden">
                         <img src="${imgs[0] || 'https://via.placeholder.com/400'}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 shadow-inner">
                         <div class="absolute top-4 left-4">
@@ -171,7 +171,7 @@
                         </div>
                         ${imgs.length > 1 ? `<span class="absolute top-4 right-4 text-[9px] bg-black/40 text-white px-2 py-1 rounded-md backdrop-blur-md font-bold">📸 ${imgs.length}</span>` : ''}
                     </div>
-                    <div class="p-6">
+                    <div class="p-6 flex-grow">
                         <h4 class="font-bold text-gray-800 text-sm md:text-base line-clamp-1 mb-1 group-hover:text-orange-500 transition-colors">${p.name}</h4>
                         <p class="text-xl font-black text-orange-500 tracking-tighter font-mono">€${p.price}</p>
                     </div>
