@@ -13,10 +13,10 @@
         .snap-x { scroll-snap-type: x mandatory; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
         .snap-center { scroll-snap-align: center; }
         .modal-open { overflow: hidden; }
-        /* 데스크탑에서 모달 높이 고정 및 스크롤 설정 */
+        /* 데스크탑 레이아웃 세부 조정 */
         @media (min-width: 768px) {
-            .desktop-modal-height { height: 600px !important; }
-            .info-scroll-area { height: calc(600px - 160px); overflow-y: auto; }
+            .desktop-modal-height { height: 640px !important; } /* 높이를 살짝 높여 시원하게 배치 */
+            .info-scroll-area { height: calc(640px - 180px); overflow-y: auto; }
         }
     </style>
 </head>
@@ -40,7 +40,7 @@
     <section class="max-w-7xl mx-auto px-5 mt-8">
         <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-[2rem] p-8 text-white shadow-xl relative overflow-hidden">
             <div class="relative z-10">
-                <h2 class="text-2xl md:text-3xl font-black mb-2 tracking-tight text-orange-50 font-bold">사랑나눔 헌금 현황</h2>
+                <h2 class="text-2xl md:text-3xl font-black mb-2 tracking-tight text-orange-50">사랑나눔 헌금 현황</h2>
                 <div class="flex items-baseline gap-2 mb-6">
                     <span id="progressAmount" class="text-4xl font-black text-white">€0</span>
                     <span class="text-orange-100 text-sm font-bold opacity-80">/ 목표 €5,000</span>
@@ -57,12 +57,12 @@
     <main class="max-w-7xl mx-auto px-5 py-12">
         <div id="loading" class="flex flex-col items-center py-20">
             <div class="loading-spinner border-4 border-gray-100 border-t-orange-500 rounded-full w-10 h-10 animate-spin mb-4"></div>
-            <p class="text-gray-400 font-medium">물품 목록을 가져오고 있어요...</p>
+            <p class="text-gray-400 font-medium font-bold">물품 정보를 동기화 중입니다...</p>
         </div>
 
         <div id="content" class="hidden">
-            <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
-                <h3 class="text-2xl font-bold text-gray-800 tracking-tight font-bold">나눔 물품 목록</h3>
+            <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6 text-center">
+                <h3 class="text-2xl font-bold text-gray-800 tracking-tight font-black">나눔 물품 목록</h3>
                 <div id="filterGroup" class="flex flex-wrap justify-center gap-2"></div>
             </div>
             <div id="productGrid" class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8"></div>
@@ -72,10 +72,10 @@
     <div id="detailModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeModal()"></div>
         
-        <div class="bg-white rounded-[2rem] w-full max-w-md md:max-w-4xl desktop-modal-height overflow-hidden relative shadow-2xl flex flex-col md:flex-row">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-md md:max-w-5xl desktop-modal-height overflow-hidden relative shadow-2xl flex flex-col md:flex-row">
             <button onclick="closeModal()" class="absolute top-4 right-4 z-[120] bg-black/20 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm backdrop-blur-md hover:bg-black/40">✕</button>
             
-            <div class="relative w-full md:w-1/2 h-[400px] md:h-full flex-shrink-0 bg-gray-50 border-r border-gray-50">
+            <div class="relative w-full md:w-[62.5%] h-[400px] md:h-full flex-shrink-0 bg-gray-50 border-r border-gray-50">
                 <div id="modalImages" class="flex h-full overflow-x-auto snap-x no-scrollbar" onscroll="updateImgIndex(this)"></div>
                 <button id="prevBtn" onclick="scrollSlider(-1)" class="absolute left-4 top-1/2 -translate-y-1/2 bg-black/30 text-white w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm hidden hover:bg-black/50 transition-all">❮</button>
                 <button id="nextBtn" onclick="scrollSlider(1)" class="absolute right-4 top-1/2 -translate-y-1/2 bg-black/30 text-white w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm hidden hover:bg-black/50 transition-all">❯</button>
@@ -84,26 +84,29 @@
                 </div>
             </div>
 
-            <div class="w-full md:w-1/2 flex flex-col bg-white h-full">
-                <div class="p-8 pb-0">
-                    <div class="flex gap-2 mb-4">
-                        <span id="modalCategory" class="text-[10px] font-black bg-orange-50 text-orange-600 px-3 py-1.5 rounded-full uppercase"></span>
-                        <span id="modalStatus" class="text-[10px] font-black px-3 py-1.5 rounded-full text-white uppercase"></span>
+            <div class="w-full md:w-[37.5%] flex flex-col bg-white h-full relative">
+                <div class="p-6 md:p-8 pb-0">
+                    <div class="flex gap-2 mb-3">
+                        <span id="modalCategory" class="text-[9px] font-black bg-orange-50 text-orange-600 px-3 py-1.5 rounded-full uppercase"></span>
+                        <span id="modalStatus" class="text-[9px] font-black px-3 py-1.5 rounded-full text-white uppercase"></span>
                     </div>
-                    <h2 id="modalName" class="text-2xl font-black text-gray-900 mb-2 tracking-tight leading-tight"></h2>
-                    <p class="text-xs font-bold text-orange-500 mb-6 flex items-center gap-1">
-                        <span class="bg-orange-100 px-2 py-0.5 rounded text-[9px] uppercase tracking-tighter">Seller</span>
+                    <h2 id="modalName" class="text-xl md:text-2xl font-black text-gray-900 mb-2 tracking-tight leading-tight"></h2>
+                    <p class="text-[11px] font-bold text-orange-500 mb-4 flex items-center gap-1">
+                        <span class="bg-orange-100 px-2 py-0.5 rounded text-[8px] uppercase tracking-tighter font-black">Seller</span>
                         <span id="sellerName" class="text-gray-700"></span>
                     </p>
                 </div>
 
-                <div class="px-8 flex-1 overflow-y-auto no-scrollbar info-scroll-area">
+                <div class="px-6 md:px-8 flex-1 overflow-y-auto no-scrollbar info-scroll-area">
                     <div id="modalDesc" class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap"></div>
                 </div>
 
-                <div class="p-8 border-t border-gray-50 bg-white flex items-center justify-between">
-                    <span id="modalPrice" class="text-3xl font-black text-gray-900 tracking-tighter"></span>
-                    <button id="modalReserveBtn" class="bg-orange-500 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-orange-100 hover:bg-orange-600 active:scale-95 transition-all text-sm">예약하기</button>
+                <div class="p-6 md:p-8 border-t border-gray-50 bg-white flex flex-col gap-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-gray-400">희망 기부금</span>
+                        <span id="modalPrice" class="text-3xl font-black text-gray-900 tracking-tighter"></span>
+                    </div>
+                    <button id="modalReserveBtn" class="w-full bg-orange-500 text-white py-4 rounded-2xl font-black shadow-lg shadow-orange-100 hover:bg-orange-600 active:scale-95 transition-all text-sm">예약하기</button>
                 </div>
             </div>
         </div>
@@ -125,7 +128,6 @@
                 const headers = rows[0].split(',').map(h => h.trim().toLowerCase());
                 
                 allProducts = rows.slice(1).map(row => {
-                    // 공백 포함 파싱 유지 (잭과 콩나무 해결)
                     const values = row.split(',').map(v => v.trim());
                     let obj = {};
                     headers.forEach((h, i) => { obj[h] = values[i] || ""; });
@@ -173,13 +175,13 @@
                     <div class="aspect-square bg-gray-50 relative overflow-hidden">
                         <img src="${imgs[0] || 'https://via.placeholder.com/400'}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 shadow-inner">
                         <div class="absolute top-4 left-4">
-                            <span class="text-[9px] font-black ${getStatusColor(p.status)} text-white px-2.5 py-1 rounded-lg uppercase shadow-sm tracking-tighter font-bold">${p.status}</span>
+                            <span class="text-[9px] font-black ${getStatusColor(p.status)} text-white px-2.5 py-1 rounded-lg uppercase shadow-sm tracking-tighter">${p.status}</span>
                         </div>
                         ${imgs.length > 1 ? `<span class="absolute top-4 right-4 text-[9px] bg-black/40 text-white px-2 py-1 rounded-md backdrop-blur-md font-bold">📸 ${imgs.length}</span>` : ''}
                     </div>
                     <div class="p-6 flex-grow">
-                        <h4 class="font-bold text-gray-800 text-sm md:text-base line-clamp-1 mb-1 group-hover:text-orange-500 transition-colors font-bold">${p.name}</h4>
-                        <p class="text-xl font-black text-orange-500 tracking-tighter font-bold font-mono">€${p.price}</p>
+                        <h4 class="font-bold text-gray-800 text-sm md:text-base line-clamp-1 mb-1 group-hover:text-orange-500 transition-colors font-black">${p.name}</h4>
+                        <p class="text-xl font-black text-orange-500 tracking-tighter font-black font-mono">€${p.price}</p>
                     </div>
                 </div>`;
             }).join('');
