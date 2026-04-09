@@ -8,10 +8,11 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700;900&display=swap');
         body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; color: #1f2937; }
-        .loading-spinner { border: 4px solid #f3f3f3; border-top: 4px solid #2563eb; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .chip-active { background-color: #f97316 !important; color: white !important; border-color: #f97316 !important; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        .chip-active { background-color: #f97316 !important; color: white !important; border-color: #f97316 !important; }
+        /* 인스타 스타일 사진 슬라이드 */
+        .snap-x { scroll-snap-type: x mandatory; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
+        .snap-center { scroll-snap-align: center; }
         .modal-open { overflow: hidden; }
         .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
         .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -42,10 +43,10 @@
                     <span id="progressText" class="text-4xl font-black">€0</span>
                     <span class="text-orange-100 text-sm font-bold opacity-80">/ 목표 €5,000</span>
                 </div>
-                <div class="w-full bg-orange-900/20 rounded-full h-4 overflow-hidden border border-orange-400/30 shadow-inner">
+                <div class="w-full bg-orange-900/20 rounded-full h-4 overflow-hidden border border-orange-400/30">
                     <div id="progressBar" class="bg-gradient-to-r from-green-300 to-emerald-400 h-full transition-all duration-1000" style="width: 0%;"></div>
                 </div>
-                <p class="mt-4 text-xs text-orange-50 font-medium opacity-80">※ 모든 후원금은 선교팀 활동을 위해 전액 사용됩니다.</p>
+                <p class="mt-4 text-xs text-orange-50 font-medium opacity-80">※ 후원금은 선교팀 활동을 위해 전액 사용됩니다.</p>
             </div>
             <span class="absolute -right-10 -bottom-10 text-[150px] opacity-10 rotate-12 text-white font-black">CAROTE</span>
         </div>
@@ -53,38 +54,47 @@
 
     <main class="max-w-7xl mx-auto px-5 py-12">
         <div id="loading" class="flex flex-col items-center py-20">
-            <div class="loading-spinner mb-4"></div>
-            <p class="text-gray-400 font-medium tracking-tighter">물품 목록을 동기화 중...</p>
+            <div class="loading-spinner border-4 border-gray-200 border-t-orange-500 rounded-full w-10 h-10 animate-spin mb-4"></div>
+            <p class="text-gray-400 font-medium">물품 목록을 동기화 중...</p>
         </div>
 
         <div id="content" class="hidden">
             <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
-                <h3 class="text-2xl font-bold text-gray-800">나눔 물품 목록</h3>
+                <h3 class="text-2xl font-bold text-gray-800 tracking-tight">나눔 물품 목록</h3>
                 <div id="filterGroup" class="flex flex-wrap gap-2"></div>
             </div>
-            <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8"></div>
+            <div id="productGrid" class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8"></div>
         </div>
     </main>
 
     <div id="detailModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeModal()"></div>
-        <div class="bg-white rounded-[2rem] w-full max-w-lg max-h-[90vh] overflow-y-auto relative shadow-2xl no-scrollbar">
-            <button onclick="closeModal()" class="absolute top-4 right-4 z-10 bg-white/90 w-10 h-10 rounded-full flex items-center justify-center font-bold text-gray-800 shadow-md">✕</button>
-            <div id="modalImages" class="flex overflow-x-auto snap-x snap-mandatory no-scrollbar bg-gray-100 aspect-square"></div>
-            <div class="p-8">
-                <div class="flex gap-2 mb-5">
-                    <span id="modalCategory" class="text-[10px] font-black bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full border border-blue-100"></span>
-                    <span id="modalStatus" class="text-[10px] font-black px-3 py-1.5 rounded-full text-white"></span>
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeModal()"></div>
+        <div class="bg-white rounded-[2.5rem] w-full max-w-md max-h-[90vh] overflow-hidden relative shadow-2xl flex flex-col">
+            <button onclick="closeModal()" class="absolute top-4 right-4 z-50 bg-black/20 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm backdrop-blur-md">✕</button>
+            
+            <div class="relative flex-shrink-0">
+                <div id="modalImages" class="flex overflow-x-auto snap-x no-scrollbar aspect-square bg-gray-100" onscroll="updateImgIndex(this)">
+                    </div>
+                <div id="imgBadge" class="absolute top-4 left-4 bg-black/50 text-white text-[10px] px-2.5 py-1 rounded-full backdrop-blur-sm font-bold hidden">
+                    <span id="currIdx">1</span> / <span id="totalIdx">1</span>
                 </div>
-                <h2 id="modalName" class="text-2xl font-black text-gray-900 mb-2 tracking-tight"></h2>
-                <p class="text-xs font-bold text-gray-400 mb-6 flex items-center gap-1.5">
-                    <span class="bg-gray-100 px-2 py-0.5 rounded uppercase">Seller</span> 
-                    <span id="modalSeller" class="text-gray-700"></span>
+            </div>
+
+            <div class="p-8 overflow-y-auto no-scrollbar">
+                <div class="flex gap-2 mb-4">
+                    <span id="modalCategory" class="text-[10px] font-black bg-orange-50 text-orange-600 px-3 py-1 rounded-full uppercase"></span>
+                    <span id="modalStatus" class="text-[10px] font-black px-3 py-1 rounded-full text-white uppercase"></span>
+                </div>
+                <h2 id="modalName" class="text-2xl font-black text-gray-900 mb-2"></h2>
+                <p id="modalSeller" class="text-xs font-bold text-orange-500 mb-6 flex items-center gap-1">
+                    <span class="bg-orange-100 px-2 py-0.5 rounded text-[9px] uppercase">Seller</span>
+                    <span id="sellerName"></span>
                 </p>
-                <p id="modalDesc" class="text-gray-600 leading-relaxed mb-10 whitespace-pre-wrap text-sm"></p>
+                <p id="modalDesc" class="text-sm text-gray-600 leading-relaxed mb-8 whitespace-pre-wrap"></p>
+                
                 <div class="flex items-center justify-between pt-6 border-t border-gray-100 sticky bottom-0 bg-white">
-                    <span id="modalPrice" class="text-3xl font-black text-orange-500"></span>
-                    <button id="modalReserveBtn" class="bg-orange-500 text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-orange-100 hover:bg-orange-600 active:scale-95 transition-all text-sm">예약하기</button>
+                    <span id="modalPrice" class="text-3xl font-black text-gray-900"></span>
+                    <button id="modalReserveBtn" class="bg-orange-500 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-orange-100 hover:bg-orange-600 active:scale-95 transition-all text-sm">예약하기</button>
                 </div>
             </div>
         </div>
@@ -92,7 +102,7 @@
 
     <script>
         const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRPlta6Z0joNP1yli805VHoF5oLLunjMBB6CA7kz9OZ8IdA_HMCjt0KrLM0mXXVCViK2pVDmg-9NDPI/pub?output=csv";
-        const TRADE_CHAT_URL = "https://open.kakao.com/o/gH1SjEpi"; // 거래용 전용 (신규 링크)
+        const TRADE_CHAT_URL = "https://open.kakao.com/o/gH1SjEpi"; // 거래용 단톡방 링크
         
         let allProducts = [];
         let currentFilter = '전체';
@@ -100,14 +110,17 @@
         async function loadData() {
             try {
                 const response = await fetch(CSV_URL + "&t=" + Date.now());
-                const text = await response.text();
-                const rows = text.replace(/\r/g, '').split('\n').filter(row => row.trim() !== "");
+                const csvText = await response.text();
+                const rows = csvText.split('\n').filter(r => r.trim() !== "");
                 const headers = rows[0].split(',').map(h => h.trim().toLowerCase());
                 
                 allProducts = rows.slice(1).map(row => {
-                    const values = row.split(',').map(v => v.trim());
+                    const values = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || row.split(',');
                     let obj = {};
-                    headers.forEach((header, i) => { obj[header] = values[i] || ""; });
+                    headers.forEach((h, i) => {
+                        let val = values[i] ? values[i].replace(/^"|"$/g, "").trim() : "";
+                        obj[h] = val;
+                    });
                     return obj;
                 }).filter(p => p.name);
 
@@ -115,36 +128,35 @@
                 renderItems(allProducts);
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('content').classList.remove('hidden');
-            } catch (err) {
-                document.getElementById('loading').innerHTML = `<p class="text-red-500 font-bold font-sm">데이터 연동 실패: 다시 시도해주세요.</p>`;
+            } catch (e) {
+                console.error("데이터 로드 실패:", e);
             }
         }
 
         function renderFilters() {
-            const categories = ['전체', ...new Set(allProducts.map(p => p.category).filter(c => c))];
-            const group = document.getElementById('filterGroup');
-            group.innerHTML = categories.map(c => `
-                <button onclick="applyFilter('${c}')" class="px-5 py-2 rounded-full text-xs font-bold border-2 transition-all ${c === currentFilter ? 'chip-active' : 'bg-white border-gray-100 text-gray-500 hover:border-orange-200'}">${c}</button>
+            const cats = ['전체', ...new Set(allProducts.map(p => p.category).filter(c => c))];
+            document.getElementById('filterGroup').innerHTML = cats.map(c => `
+                <button onclick="applyFilter('${c}')" class="px-4 py-2 rounded-full text-xs font-bold border-2 transition-all ${c === currentFilter ? 'chip-active border-orange-500' : 'bg-white border-gray-100 text-gray-500 hover:border-orange-200'}">${c}</button>
             `).join('');
         }
 
         function renderItems(items) {
             const grid = document.getElementById('productGrid');
             grid.innerHTML = items.map(p => {
-                const firstImg = p.img.split(',')[0].trim();
+                // 사진 구분을 세미콜론(;)으로 수행
+                const imgs = p.img.split(';').map(s => s.trim());
                 return `
-                <div class="bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 border border-gray-50 flex flex-col group cursor-pointer" onclick="openModal('${p.id}')">
-                    <div class="aspect-[4/3] bg-gray-100 overflow-hidden relative">
-                        <img src="${firstImg || 'https://via.placeholder.com/400x300?text=No+Image'}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
-                        <div class="absolute top-4 left-4">
-                            <span class="text-[9px] font-black ${getStatusColor(p.status)} text-white px-2.5 py-1 rounded-lg uppercase shadow-sm tracking-tighter">
-                                ${p.status}
-                            </span>
+                <div class="bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-gray-50 flex flex-col cursor-pointer group" onclick="openModal('${p.id}')">
+                    <div class="aspect-square bg-gray-100 relative overflow-hidden">
+                        <img src="${imgs[0] || 'https://via.placeholder.com/400'}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                        <div class="absolute top-3 left-3">
+                            <span class="text-[9px] font-black ${getStatusColor(p.status)} text-white px-2 py-1 rounded-md uppercase shadow-sm tracking-tighter">${p.status}</span>
                         </div>
+                        ${imgs.length > 1 ? `<span class="absolute top-3 right-3 text-[9px] bg-black/40 text-white px-2 py-1 rounded-md backdrop-blur-md">📸 ${imgs.length}</span>` : ''}
                     </div>
-                    <div class="p-6">
-                        <h4 class="font-bold text-gray-800 mb-1 line-clamp-1 group-hover:text-orange-500 transition-colors">${p.name}</h4>
-                        <p class="text-2xl font-black text-orange-500 tracking-tighter">€${p.price}</p>
+                    <div class="p-4 md:p-6">
+                        <h4 class="font-bold text-gray-800 text-sm md:text-base line-clamp-1 mb-1 group-hover:text-orange-500 transition-colors">${p.name}</h4>
+                        <p class="text-xl font-black text-orange-500 tracking-tighter">€${p.price}</p>
                     </div>
                 </div>`;
             }).join('');
@@ -158,21 +170,36 @@
             document.getElementById('modalCategory').innerText = p.category;
             document.getElementById('modalStatus').innerText = p.status;
             document.getElementById('modalStatus').className = `text-[10px] font-black px-3 py-1.5 rounded-full uppercase ${getStatusColor(p.status)}`;
-            document.getElementById('modalSeller').innerText = p.seller;
+            document.getElementById('sellerName').innerText = p.seller;
             document.getElementById('modalDesc').innerText = p.desc;
             document.getElementById('modalPrice').innerText = '€' + p.price;
 
+            // 다중 사진 처리 (세미콜론 구분)
             const imgContainer = document.getElementById('modalImages');
-            const images = p.img.split(',').map(url => url.trim()).filter(url => url !== "");
+            const images = p.img.split(';').map(url => url.trim()).filter(url => url !== "");
             imgContainer.innerHTML = images.map(url => `
-                <img src="${url}" class="w-full h-full object-cover flex-shrink-0 snap-center">
+                <img src="${url}" class="w-full h-full object-cover flex-shrink-0 snap-center" onerror="this.src='https://via.placeholder.com/400?text=Image+Error'">
             `).join('');
 
-            const btn = document.getElementById('modalReserveBtn');
-            btn.onclick = () => reserve(p.name, p.price, p.status, p.seller);
+            // 사진 인디케이터 초기화
+            imgContainer.scrollLeft = 0;
+            const badge = document.getElementById('imgBadge');
+            if(images.length > 1) {
+                badge.classList.remove('hidden');
+                document.getElementById('currIdx').innerText = "1";
+                document.getElementById('totalIdx').innerText = images.length;
+            } else {
+                badge.classList.add('hidden');
+            }
 
+            document.getElementById('modalReserveBtn').onclick = () => reserve(p.name, p.price, p.status, p.seller);
             document.getElementById('detailModal').classList.remove('hidden');
             document.body.classList.add('modal-open');
+        }
+
+        function updateImgIndex(el) {
+            const idx = Math.round(el.scrollLeft / el.clientWidth) + 1;
+            document.getElementById('currIdx').innerText = idx;
         }
 
         function closeModal() {
@@ -186,18 +213,13 @@
             return 'bg-gray-400';
         }
 
-        // 예약하기 함수
         function reserve(name, price, status, seller) {
-            if (status !== '판매중') {
-                alert('이미 예약 중이거나 거래 완료된 물품입니다.');
-                return;
-            }
+            if (status !== '판매중') { alert('이미 예약 중이거나 거래 완료된 물품입니다.'); return; }
             
-            // @판매자 태그 문구 생성
             const msg = `안녕하세요, @${seller} 님! 한마음 CAROTE에서 본 [${name}] 제품 €${price}에 구매 예약 희망합니다.`;
             
             navigator.clipboard.writeText(msg).then(() => {
-                if (confirm(`🎉 구매 예약을 진행하시겠습니까?\n\n"${msg}"\n\n문구가 복사되었습니다. 거래 단톡방에 붙여넣어 주세요.`)) {
+                if (confirm(`🎉 구매 예약을 진행하시겠습니까?\n\n"${msg}"\n\n문구가 복사되었습니다. 거래 단톡방에 붙여넣기(Ctrl+V) 해주세요.`)) {
                     window.open(TRADE_CHAT_URL, '_blank');
                 }
             });
