@@ -10,7 +10,6 @@
         body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; color: #1f2937; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .chip-active { background-color: #f97316 !important; color: white !important; border-color: #f97316 !important; }
-        /* 인스타 스타일 사진 슬라이드 */
         .snap-x { scroll-snap-type: x mandatory; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
         .snap-center { scroll-snap-align: center; }
         .modal-open { overflow: hidden; }
@@ -70,11 +69,14 @@
     <div id="detailModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeModal()"></div>
         <div class="bg-white rounded-[2.5rem] w-full max-w-md max-h-[90vh] overflow-hidden relative shadow-2xl flex flex-col">
-            <button onclick="closeModal()" class="absolute top-4 right-4 z-50 bg-black/20 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm backdrop-blur-md">✕</button>
+            <button onclick="closeModal()" class="absolute top-4 right-4 z-50 bg-black/20 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm backdrop-blur-md hover:bg-black/40">✕</button>
             
-            <div class="relative flex-shrink-0">
+            <div class="relative flex-shrink-0 group/slider">
                 <div id="modalImages" class="flex overflow-x-auto snap-x no-scrollbar aspect-square bg-gray-100" onscroll="updateImgIndex(this)">
                     </div>
+                <button id="prevBtn" onclick="scrollSlider(-1)" class="absolute left-4 top-1/2 -translate-y-1/2 bg-black/30 text-white w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm hidden hover:bg-black/50 transition-all">❮</button>
+                <button id="nextBtn" onclick="scrollSlider(1)" class="absolute right-4 top-1/2 -translate-y-1/2 bg-black/30 text-white w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm hidden hover:bg-black/50 transition-all">❯</button>
+                
                 <div id="imgBadge" class="absolute top-4 left-4 bg-black/50 text-white text-[10px] px-2.5 py-1 rounded-full backdrop-blur-sm font-bold hidden">
                     <span id="currIdx">1</span> / <span id="totalIdx">1</span>
                 </div>
@@ -83,9 +85,9 @@
             <div class="p-8 overflow-y-auto no-scrollbar">
                 <div class="flex gap-2 mb-4">
                     <span id="modalCategory" class="text-[10px] font-black bg-orange-50 text-orange-600 px-3 py-1 rounded-full uppercase"></span>
-                    <span id="modalStatus" class="text-[10px] font-black px-3 py-1 rounded-full text-white uppercase"></span>
+                    <span id="modalStatus" class="text-[10px] font-black px-3 py-1.5 rounded-full text-white uppercase"></span>
                 </div>
-                <h2 id="modalName" class="text-2xl font-black text-gray-900 mb-2"></h2>
+                <h2 id="modalName" class="text-2xl font-black text-gray-900 mb-2 tracking-tight"></h2>
                 <p id="modalSeller" class="text-xs font-bold text-orange-500 mb-6 flex items-center gap-1">
                     <span class="bg-orange-100 px-2 py-0.5 rounded text-[9px] uppercase">Seller</span>
                     <span id="sellerName"></span>
@@ -93,7 +95,7 @@
                 <p id="modalDesc" class="text-sm text-gray-600 leading-relaxed mb-8 whitespace-pre-wrap"></p>
                 
                 <div class="flex items-center justify-between pt-6 border-t border-gray-100 sticky bottom-0 bg-white">
-                    <span id="modalPrice" class="text-3xl font-black text-gray-900"></span>
+                    <span id="modalPrice" class="text-3xl font-black text-gray-900 tracking-tighter"></span>
                     <button id="modalReserveBtn" class="bg-orange-500 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-orange-100 hover:bg-orange-600 active:scale-95 transition-all text-sm">예약하기</button>
                 </div>
             </div>
@@ -102,7 +104,7 @@
 
     <script>
         const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRPlta6Z0joNP1yli805VHoF5oLLunjMBB6CA7kz9OZ8IdA_HMCjt0KrLM0mXXVCViK2pVDmg-9NDPI/pub?output=csv";
-        const TRADE_CHAT_URL = "https://open.kakao.com/o/gH1SjEpi"; // 거래용 단톡방 링크
+        const TRADE_CHAT_URL = "https://open.kakao.com/o/gH1SjEpi"; 
         
         let allProducts = [];
         let currentFilter = '전체';
@@ -143,16 +145,15 @@
         function renderItems(items) {
             const grid = document.getElementById('productGrid');
             grid.innerHTML = items.map(p => {
-                // 사진 구분을 세미콜론(;)으로 수행
                 const imgs = p.img.split(';').map(s => s.trim());
                 return `
                 <div class="bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-gray-50 flex flex-col cursor-pointer group" onclick="openModal('${p.id}')">
                     <div class="aspect-square bg-gray-100 relative overflow-hidden">
-                        <img src="${imgs[0] || 'https://via.placeholder.com/400'}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                        <img src="${imgs[0] || 'https://via.placeholder.com/400'}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 shadow-inner">
                         <div class="absolute top-3 left-3">
-                            <span class="text-[9px] font-black ${getStatusColor(p.status)} text-white px-2 py-1 rounded-md uppercase shadow-sm tracking-tighter">${p.status}</span>
+                            <span class="text-[9px] font-black ${getStatusColor(p.status)} text-white px-2.5 py-1 rounded-lg uppercase shadow-sm tracking-tighter">${p.status}</span>
                         </div>
-                        ${imgs.length > 1 ? `<span class="absolute top-3 right-3 text-[9px] bg-black/40 text-white px-2 py-1 rounded-md backdrop-blur-md">📸 ${imgs.length}</span>` : ''}
+                        ${imgs.length > 1 ? `<span class="absolute top-3 right-3 text-[9px] bg-black/40 text-white px-2 py-1 rounded-md backdrop-blur-md font-bold">📸 ${imgs.length}</span>` : ''}
                     </div>
                     <div class="p-4 md:p-6">
                         <h4 class="font-bold text-gray-800 text-sm md:text-base line-clamp-1 mb-1 group-hover:text-orange-500 transition-colors">${p.name}</h4>
@@ -174,27 +175,34 @@
             document.getElementById('modalDesc').innerText = p.desc;
             document.getElementById('modalPrice').innerText = '€' + p.price;
 
-            // 다중 사진 처리 (세미콜론 구분)
             const imgContainer = document.getElementById('modalImages');
             const images = p.img.split(';').map(url => url.trim()).filter(url => url !== "");
             imgContainer.innerHTML = images.map(url => `
-                <img src="${url}" class="w-full h-full object-cover flex-shrink-0 snap-center" onerror="this.src='https://via.placeholder.com/400?text=Image+Error'">
+                <img src="${url}" class="w-full h-full object-cover flex-shrink-0 snap-center shadow-inner" onerror="this.src='https://via.placeholder.com/400?text=Image+Error'">
             `).join('');
 
-            // 사진 인디케이터 초기화
             imgContainer.scrollLeft = 0;
             const badge = document.getElementById('imgBadge');
+            const pBtn = document.getElementById('prevBtn');
+            const nBtn = document.getElementById('nextBtn');
+
             if(images.length > 1) {
-                badge.classList.remove('hidden');
+                [badge, pBtn, nBtn].forEach(el => el.classList.remove('hidden'));
                 document.getElementById('currIdx').innerText = "1";
                 document.getElementById('totalIdx').innerText = images.length;
             } else {
-                badge.classList.add('hidden');
+                [badge, pBtn, nBtn].forEach(el => el.classList.add('hidden'));
             }
 
             document.getElementById('modalReserveBtn').onclick = () => reserve(p.name, p.price, p.status, p.seller);
             document.getElementById('detailModal').classList.remove('hidden');
             document.body.classList.add('modal-open');
+        }
+
+        // 화살표 클릭 시 슬라이드 이동 함수
+        function scrollSlider(direction) {
+            const container = document.getElementById('modalImages');
+            container.scrollBy({ left: direction * container.clientWidth, behavior: 'smooth' });
         }
 
         function updateImgIndex(el) {
@@ -215,9 +223,7 @@
 
         function reserve(name, price, status, seller) {
             if (status !== '판매중') { alert('이미 예약 중이거나 거래 완료된 물품입니다.'); return; }
-            
             const msg = `안녕하세요, @${seller} 님! 한마음 CAROTE에서 본 [${name}] 제품 €${price}에 구매 예약 희망합니다.`;
-            
             navigator.clipboard.writeText(msg).then(() => {
                 if (confirm(`🎉 구매 예약을 진행하시겠습니까?\n\n"${msg}"\n\n문구가 복사되었습니다. 거래 단톡방에 붙여넣기(Ctrl+V) 해주세요.`)) {
                     window.open(TRADE_CHAT_URL, '_blank');
