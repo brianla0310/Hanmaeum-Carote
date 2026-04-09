@@ -39,13 +39,13 @@
             <div class="relative z-10">
                 <h2 class="text-2xl md:text-3xl font-black mb-2 tracking-tight text-orange-50">사랑나눔 헌금 현황</h2>
                 <div class="flex items-baseline gap-2 mb-6">
-                    <span id="progressText" class="text-4xl font-black text-white">€0</span>
+                    <span id="progressAmount" class="text-4xl font-black text-white">€0</span>
                     <span class="text-orange-100 text-sm font-bold opacity-80">/ 목표 €5,000</span>
                 </div>
                 <div class="w-full bg-orange-900/20 rounded-full h-4 overflow-hidden border border-orange-400/30 shadow-inner">
                     <div id="progressBar" class="bg-gradient-to-r from-green-300 to-emerald-400 h-full transition-all duration-1000" style="width: 0%;"></div>
                 </div>
-                <p class="mt-4 text-xs text-orange-50 font-medium opacity-80">※ 모든 후원금은 선교팀 활동을 위해 전액 사용됩니다.</p>
+                <p id="progressPercent" class="mt-4 text-xs text-orange-50 font-bold opacity-90">현재 달성률: 0%</p>
             </div>
             <span class="absolute -right-10 -bottom-10 text-[180px] opacity-20 rotate-12 transform select-none">🥕</span>
         </div>
@@ -70,18 +70,14 @@
         <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeModal()"></div>
         <div class="bg-white rounded-[2.5rem] w-full max-w-md max-h-[90vh] overflow-hidden relative shadow-2xl flex flex-col">
             <button onclick="closeModal()" class="absolute top-4 right-4 z-50 bg-black/20 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm backdrop-blur-md hover:bg-black/40">✕</button>
-            
             <div class="relative flex-shrink-0 group/slider">
-                <div id="modalImages" class="flex overflow-x-auto snap-x no-scrollbar aspect-square bg-gray-100" onscroll="updateImgIndex(this)">
-                </div>
-                <button id="prevBtn" onclick="scrollSlider(-1)" class="absolute left-4 top-1/2 -translate-y-1/2 bg-black/30 text-white w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm hidden hover:bg-black/50 transition-all">❮</button>
-                <button id="nextBtn" onclick="scrollSlider(1)" class="absolute right-4 top-1/2 -translate-y-1/2 bg-black/30 text-white w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm hidden hover:bg-black/50 transition-all">❯</button>
-                
+                <div id="modalImages" class="flex overflow-x-auto snap-x no-scrollbar aspect-square bg-gray-100" onscroll="updateImgIndex(this)"></div>
+                <button id="prevBtn" onclick="scrollSlider(-1)" class="absolute left-4 top-1/2 -translate-y-1/2 bg-black/30 text-white w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm hidden">❮</button>
+                <button id="nextBtn" onclick="scrollSlider(1)" class="absolute right-4 top-1/2 -translate-y-1/2 bg-black/30 text-white w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm hidden">❯</button>
                 <div id="imgBadge" class="absolute top-4 left-4 bg-black/50 text-white text-[10px] px-2.5 py-1 rounded-full backdrop-blur-sm font-bold hidden">
                     <span id="currIdx">1</span> / <span id="totalIdx">1</span>
                 </div>
             </div>
-
             <div class="p-8 overflow-y-auto no-scrollbar">
                 <div class="flex gap-2 mb-4">
                     <span id="modalCategory" class="text-[10px] font-black bg-orange-50 text-orange-600 px-3 py-1 rounded-full uppercase"></span>
@@ -93,7 +89,6 @@
                     <span id="sellerName"></span>
                 </p>
                 <p id="modalDesc" class="text-sm text-gray-600 leading-relaxed mb-8 whitespace-pre-wrap"></p>
-                
                 <div class="flex items-center justify-between pt-6 border-t border-gray-100 sticky bottom-0 bg-white">
                     <span id="modalPrice" class="text-3xl font-black text-gray-900 tracking-tighter"></span>
                     <button id="modalReserveBtn" class="bg-orange-500 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-orange-100 hover:bg-orange-600 active:scale-95 transition-all text-sm">예약하기</button>
@@ -105,6 +100,7 @@
     <script>
         const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRPlta6Z0joNP1yli805VHoF5oLLunjMBB6CA7kz9OZ8IdA_HMCjt0KrLM0mXXVCViK2pVDmg-9NDPI/pub?output=csv";
         const TRADE_CHAT_URL = "https://open.kakao.com/o/gH1SjEpi"; 
+        const TARGET_GOAL = 5000; // 목표 액수
         
         let allProducts = [];
         let currentFilter = '전체';
@@ -113,18 +109,23 @@
             try {
                 const response = await fetch(CSV_URL + "&t=" + Date.now());
                 const csvText = await response.text();
-                const rows = csvText.split('\n').filter(r => r.trim() !== "");
+                
+                // [수정] 띄어쓰기 문제를 해결하기 위한 강력한 CSV 파서
+                const rows = csvText.split(/\r?\n/).filter(r => r.trim() !== "");
                 const headers = rows[0].split(',').map(h => h.trim().toLowerCase());
                 
                 allProducts = rows.slice(1).map(row => {
-                    const values = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || row.split(',');
+                    // [해결 1] 공백을 포함해도 쉼표(,)로만 정확히 분리하도록 수정
+                    const values = row.split(',').map(v => v.trim());
                     let obj = {};
                     headers.forEach((h, i) => {
-                        let val = values[i] ? values[i].replace(/^"|"$/g, "").trim() : "";
-                        obj[h] = val;
+                        obj[h] = values[i] || "";
                     });
                     return obj;
                 }).filter(p => p.name);
+
+                // [해결 2] 수익금 자동 정산 실행
+                calculateDonation();
 
                 renderFilters();
                 renderItems(allProducts);
@@ -133,6 +134,21 @@
             } catch (e) {
                 console.error("데이터 로드 실패:", e);
             }
+        }
+
+        // 수익금 자동 합산 함수
+        function calculateDonation() {
+            // status가 '판매완료'인 상품의 price만 합산
+            const totalEarned = allProducts
+                .filter(p => p.status === '판매완료')
+                .reduce((sum, p) => sum + (parseFloat(p.price) || 0), 0);
+            
+            const progressPercent = Math.min((totalEarned / TARGET_GOAL) * 100, 100);
+            
+            // UI 업데이트
+            document.getElementById('progressAmount').innerText = `€${totalEarned.toLocaleString()}`;
+            document.getElementById('progressBar').style.width = `${progressPercent}%`;
+            document.getElementById('progressPercent').innerText = `현재 달성률: ${progressPercent.toFixed(1)}% (${totalEarned.toLocaleString()}€ / 5,000€)`;
         }
 
         function renderFilters() {
@@ -149,7 +165,7 @@
                 return `
                 <div class="bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-gray-50 flex flex-col cursor-pointer group" onclick="openModal('${p.id}')">
                     <div class="aspect-square bg-gray-50 relative overflow-hidden">
-                        <img src="${imgs[0] || 'https://via.placeholder.com/400'}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                        <img src="${imgs[0] || 'https://via.placeholder.com/400'}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 shadow-inner">
                         <div class="absolute top-4 left-4">
                             <span class="text-[9px] font-black ${getStatusColor(p.status)} text-white px-2.5 py-1 rounded-lg uppercase shadow-sm tracking-tighter">${p.status}</span>
                         </div>
@@ -199,22 +215,13 @@
             document.body.classList.add('modal-open');
         }
 
-        // 사진 루프(Infinite Loop) 기능을 포함한 스크롤 함수
         function scrollSlider(direction) {
             const container = document.getElementById('modalImages');
             const total = parseInt(document.getElementById('totalIdx').innerText);
             const current = parseInt(document.getElementById('currIdx').innerText);
-
-            if (direction === 1 && current === total) {
-                // 마지막 사진에서 다음 클릭 -> 첫 번째 사진으로
-                container.scrollTo({ left: 0, behavior: 'smooth' });
-            } else if (direction === -1 && current === 1) {
-                // 첫 번째 사진에서 이전 클릭 -> 마지막 사진으로
-                container.scrollTo({ left: container.clientWidth * (total - 1), behavior: 'smooth' });
-            } else {
-                // 일반적인 이동
-                container.scrollBy({ left: direction * container.clientWidth, behavior: 'smooth' });
-            }
+            if (direction === 1 && current === total) container.scrollTo({ left: 0, behavior: 'smooth' });
+            else if (direction === -1 && current === 1) container.scrollTo({ left: container.clientWidth * (total - 1), behavior: 'smooth' });
+            else container.scrollBy({ left: direction * container.clientWidth, behavior: 'smooth' });
         }
 
         function updateImgIndex(el) {
