@@ -811,14 +811,18 @@ async function init(){
   }
   db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  db.auth.onAuthStateChange(async (event, s) => {
+  db.auth.onAuthStateChange((event, s) => {
     session = s;
     if (event === "PASSWORD_RECOVERY") openModal("pwResetModal");
-    if (event === "SIGNED_IN" || event === "INITIAL_SESSION"){
-      if (s) await loadProfile();
-      renderHeader();
-    }
-    if (event === "SIGNED_OUT"){ profile = null; renderHeader(); renderGrid(); }
+    // 주의: 이 콜백 안에서 직접 await로 DB를 조회하면 supabase-js 내부
+    // 잠금이 풀리지 않아 앱 전체가 멈춥니다. setTimeout으로 잠금 밖에서 실행.
+    setTimeout(async () => {
+      if (event === "SIGNED_IN" || event === "INITIAL_SESSION"){
+        if (s) await loadProfile();
+        renderHeader();
+      }
+      if (event === "SIGNED_OUT"){ profile = null; renderHeader(); renderGrid(); }
+    }, 0);
   });
 
   const { data } = await db.auth.getSession();
