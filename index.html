@@ -733,6 +733,18 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
     <p style="font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:18px">
       물품의 수정·삭제·HOT 지정은 각 물품 상세 화면에서 바로 할 수 있어요.</p>
     <div id="adminStats" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px"></div>
+    <h2 style="font-size:15px;margin-bottom:10px">👥 성도 관리</h2>
+    <input type="text" id="memberSearch" class="admin-inp" placeholder="닉네임·이메일 검색"
+      oninput="renderMembers()" style="margin-bottom:8px" />
+    <div class="rowlist" id="memberList" style="margin-bottom:12px">
+      <div class="empty" style="padding:14px 0">불러오는 중…</div>
+    </div>
+    <button class="btn btn-block" id="banListBtn" style="color:var(--muted);font-size:12px;margin-bottom:20px"
+      onclick="toggleBanList()">🚫 재가입 차단 목록 보기</button>
+    <div id="banListWrap" class="hidden" style="margin-bottom:20px">
+      <div class="rowlist" id="banList"></div>
+    </div>
+
     <h2 style="font-size:15px;margin-bottom:10px">✍️ 사이트 문구</h2>
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px">
       <input type="text" id="setEyebrow" class="admin-inp" maxlength="60" placeholder="배너 작은 문구" />
@@ -744,6 +756,8 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
 
     <h2 style="font-size:15px;margin-bottom:10px">🚨 신고된 물품</h2>
     <div class="rowlist" id="reportList" style="margin-bottom:20px"></div>
+    <h2 style="font-size:15px;margin-bottom:10px">💬 신고된 채팅</h2>
+    <div class="rowlist" id="reportedChatList" style="margin-bottom:20px"></div>
     <h2 style="font-size:15px;margin-bottom:10px">카테고리 관리</h2>
     <div class="rowlist" id="catList" style="margin-bottom:12px"></div>
     <div style="display:flex;gap:8px">
@@ -818,6 +832,51 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
 .cmt-form input{ flex:1; min-width:0; background:var(--paper); border:1.5px solid var(--line);
   border-radius:12px; padding:11px 14px; font-weight:600; outline:none; }
 .cmt-form input:focus{ border-color:var(--carrot); }
+
+/* 채팅 */
+.chat-badge{ position:absolute; top:-4px; right:-4px; min-width:17px; height:17px; padding:0 4px;
+  background:var(--danger); color:#fff; font-size:10px; font-weight:800; border-radius:999px;
+  display:grid; place-items:center; border:2px solid var(--paper); }
+.icon-btn{ position:relative; width:40px; height:40px; border-radius:12px; border:1.5px solid var(--line);
+  background:var(--card); cursor:pointer; font-size:17px; display:grid; place-items:center; }
+.icon-btn:hover{ border-color:var(--carrot); }
+.chat-row-thumb{ width:52px; height:52px; border-radius:12px; object-fit:cover; background:var(--butter);
+  flex-shrink:0; display:grid; place-items:center; font-size:22px; }
+.chat-row.unread .rname{ font-weight:800; }
+.chat-row .cr-dot{ width:9px; height:9px; border-radius:50%; background:var(--carrot); flex:none; align-self:center; }
+.chat-panel{ padding:0 !important; max-width:520px; overflow:hidden; }
+.chat-wrap{ display:flex; flex-direction:column; height:min(80vh, 640px); }
+.chat-head{ display:flex; align-items:center; gap:10px; padding:14px 16px; border-bottom:1.5px solid var(--line);
+  background:var(--card); flex:none; }
+.chat-back{ background:none; border:none; font-size:26px; line-height:1; color:var(--muted);
+  cursor:pointer; padding:0 4px; flex:none; }
+.chat-head-main{ flex:1; min-width:0; }
+.chat-head-title{ font-weight:800; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.chat-head-sub{ font-size:11.5px; color:var(--muted); font-weight:600; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis; }
+.chat-report-btn{ background:none; border:none; font-size:16px; cursor:pointer; flex:none; opacity:.6; padding:4px; }
+.chat-report-btn:hover{ opacity:1; }
+.chat-notice{ font-size:11px; color:var(--muted); font-weight:600; text-align:center;
+  padding:8px 14px; background:#FFF7EA; border-bottom:1px solid var(--line); flex:none; line-height:1.5; }
+.chat-body{ flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:8px;
+  background:var(--paper); }
+.chat-day{ text-align:center; font-size:11px; color:var(--muted); font-weight:700; margin:6px 0; }
+.bubble{ max-width:78%; padding:9px 13px; border-radius:16px; font-size:14px; line-height:1.5;
+  font-weight:500; word-break:break-word; white-space:pre-wrap; }
+.bubble.me{ align-self:flex-end; background:var(--carrot); color:#fff; border-bottom-right-radius:5px; }
+.bubble.you{ align-self:flex-start; background:var(--card); border:1.5px solid var(--line);
+  border-bottom-left-radius:5px; }
+.bubble .btime{ display:block; font-size:9.5px; opacity:.7; margin-top:3px; font-weight:600; }
+.chat-input{ display:flex; gap:8px; padding:12px 14px; border-top:1.5px solid var(--line);
+  background:var(--card); flex:none; }
+.chat-input input{ flex:1; min-width:0; background:var(--paper); border:1.5px solid var(--line);
+  border-radius:999px; padding:11px 16px; font-weight:500; outline:none; }
+.chat-input input:focus{ border-color:var(--carrot); }
+.chat-send{ width:42px; height:42px; border-radius:50%; border:none; background:var(--carrot); color:#fff;
+  font-size:16px; cursor:pointer; flex:none; }
+.chat-send:disabled{ opacity:.5; }
+.chat-admin-view{ background:#FFF7EA; border:1.5px dashed #F0D9BA; border-radius:12px; padding:10px 14px;
+  font-size:12px; font-weight:700; color:var(--muted); margin-bottom:10px; text-align:center; }
 </style>
 
 <!-- ═══════════════ 게시글 보기 ═══════════════ -->
@@ -913,6 +972,85 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
   </div></div>
 </div>
 
+<!-- ═══════════════ 채팅 목록 ═══════════════ -->
+<div class="modal hidden" id="chatListModal">
+  <div class="backdrop" onclick="closeModal('chatListModal')"></div>
+  <div class="panel"><div class="panel-pad">
+    <button class="close-x" onclick="closeModal('chatListModal')">✕</button>
+    <div class="panel-eyebrow">messaggi</div>
+    <h2 style="margin-bottom:14px">💬 채팅</h2>
+    <div class="rowlist" id="chatList">
+      <div class="empty" style="padding:14px 0">불러오는 중…</div>
+    </div>
+  </div></div>
+</div>
+
+<!-- ═══════════════ 채팅방 ═══════════════ -->
+<div class="modal hidden" id="chatRoomModal">
+  <div class="backdrop" onclick="closeChatRoom()"></div>
+  <div class="panel chat-panel"><div class="chat-wrap">
+    <div class="chat-head">
+      <button class="chat-back" onclick="closeChatRoom()" aria-label="뒤로">‹</button>
+      <div class="chat-head-main">
+        <div class="chat-head-title" id="crTitle"></div>
+        <div class="chat-head-sub" id="crSub"></div>
+      </div>
+      <button class="chat-report-btn" id="crReportBtn" onclick="openChatReport()" aria-label="신고">🚨</button>
+    </div>
+    <div class="chat-notice">🔒 대화는 비공개예요. 다만 신고가 접수되면 관리자가 열람할 수 있어요.</div>
+    <div class="chat-body" id="crBody"></div>
+    <div class="chat-input" id="crInputBar">
+      <input type="text" id="crInput" maxlength="1000" placeholder="메시지를 입력하세요"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();sendChat();}" />
+      <button class="chat-send" onclick="sendChat()" aria-label="전송">➤</button>
+    </div>
+  </div></div>
+</div>
+
+<!-- ═══════════════ 채팅 신고 ═══════════════ -->
+<div class="modal hidden" id="chatReportModal">
+  <div class="backdrop" onclick="closeModal('chatReportModal')"></div>
+  <div class="panel"><div class="panel-pad">
+    <button class="close-x" onclick="closeModal('chatReportModal')">✕</button>
+    <div class="panel-eyebrow">segnalazione</div>
+    <h2 style="margin-bottom:6px">대화 신고하기</h2>
+    <p style="font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:14px">
+      신고하면 이 대화의 내용을 관리자가 열람할 수 있게 됩니다.</p>
+    <label class="check-row"><span>부적절한 언행이에요</span>
+      <input type="radio" name="chatRepReason" value="부적절한 언행" checked /></label>
+    <label class="check-row"><span>사기 · 허위 정황이 있어요</span>
+      <input type="radio" name="chatRepReason" value="사기/허위" /></label>
+    <label class="check-row"><span>기타</span>
+      <input type="radio" name="chatRepReason" value="기타" /></label>
+    <div class="field" style="margin-top:10px"><label>상세 내용 (선택)</label>
+      <textarea id="chatRepDetail" placeholder="관리자에게 전할 내용을 적어주세요."></textarea></div>
+    <div class="form-error" id="chatRepError"></div>
+    <button class="btn btn-danger btn-block" id="chatRepBtn" onclick="submitChatReport()">신고 접수하기</button>
+  </div></div>
+</div>
+
+<!-- ═══════════════ 강제 탈퇴 (관리자) ═══════════════ -->
+<div class="modal hidden" id="kickModal">
+  <div class="backdrop" onclick="closeModal('kickModal')"></div>
+  <div class="panel"><div class="panel-pad">
+    <button class="close-x" onclick="closeModal('kickModal')">✕</button>
+    <div class="panel-eyebrow">amministrazione</div>
+    <h2 style="margin-bottom:10px">강제 탈퇴</h2>
+    <p style="font-size:13px;color:var(--muted);font-weight:600;line-height:1.7;margin-bottom:14px">
+      <b id="kickName" style="color:var(--ink)"></b> 님을 탈퇴 처리합니다.<br/>
+      이 성도의 물품·사진·글·댓글이 삭제되며
+      <b style="color:var(--danger)">되돌릴 수 없습니다.</b>
+      판매완료 기록은 익명으로 보존됩니다.</p>
+    <label class="check-row" style="margin-bottom:14px">
+      <span>🚫 이 이메일로 재가입 금지<br/>
+        <small style="font-weight:600;color:var(--muted)">차단 목록에서 언제든 해제할 수 있어요</small></span>
+      <input type="checkbox" id="kickBan" checked />
+    </label>
+    <div class="form-error" id="kickError"></div>
+    <button class="btn btn-danger btn-block" id="kickBtn" onclick="doKick()">탈퇴 처리하기</button>
+  </div></div>
+</div>
+
 <!-- ═══════════════ 회원 탈퇴 ═══════════════ -->
 <div class="modal hidden" id="delAcctModal">
   <div class="backdrop" onclick="closeModal('delAcctModal')"></div>
@@ -980,6 +1118,16 @@ let bpBoardLock = null;       // 나눔후기 모드에서 게시판 고정
 let bpProductId = null;
 let siteSettings = {};
 let notifySetupMode = false;  // 가입 직후 필수 알림 설정 모드
+let members = [];
+let kickTarget = null;
+let convos = [];              // 내 대화방 목록
+let chatUnread = 0;           // 안 읽은 대화 수
+let curConv = null;           // 현재 열린 대화방 객체
+let curMsgs = [];
+let chatChannel = null;       // 현재 방 realtime 구독
+let listChannel = null;       // 목록 realtime 구독
+let adminChatView = false;    // 관리자 열람 모드
+let chatReportConv = null;
 const BOARD_META = {
   notice: { label: "📢 공지",     name: "공지" },
   free:   { label: "💬 자유게시판", name: "자유게시판" },
@@ -1050,9 +1198,11 @@ async function init(){
         renderHeader();
         if (products.length) renderGrid();
         if (s && profile && profile.notify_setup_done === false) openNotify(true);
+        if (s) refreshChatUnread();
       }
       if (event === "SIGNED_OUT"){
         profile = null; myFavs = new Set();
+        chatUnread = 0; teardownChatList();
         renderHeader(); renderGrid();
       }
     }, 0);
@@ -1064,6 +1214,7 @@ async function init(){
   renderHeader();
 
   await Promise.all([loadCategories(), loadProducts(), loadSettings(), loadPosts()]);
+  if (session) await refreshChatUnread();
 
   // 딥링크(?id=... 물품 / ?post=... 게시글) 자동 열기
   const qs = new URLSearchParams(location.search);
@@ -1074,6 +1225,8 @@ async function init(){
     switchView("board");
     openPostView(sharedPost);
   }
+  const sharedChat = qs.get("chat");
+  if (sharedChat && session) openChatById(sharedChat);
 
   // 검색 / 새로고침 / 스크롤탑
   $("searchInput").addEventListener("input", e => { searchTerm = e.target.value; renderGrid(); });
@@ -1147,6 +1300,8 @@ function renderHeader(){
   const initial = esc((profile.nickname || "성")[0]);
   el.innerHTML = `
     <button class="btn btn-primary" onclick="openPost()">＋ 물품 올리기</button>
+    <button class="icon-btn" onclick="openChatList()" aria-label="채팅" title="채팅">💬${
+      chatUnread > 0 ? `<span class="chat-badge">${chatUnread > 99 ? "99+" : chatUnread}</span>` : ""}</button>
     <button class="profile-chip" onclick="toggleDropdown()">
       <span class="avatar">${initial}</span>${esc(profile.nickname)}
     </button>`;
@@ -1170,6 +1325,420 @@ function toggleDropdown(force){
     <button onclick="toggleDropdown(false); openDeleteAccount()"
       style="color:var(--muted);font-size:11.5px">회원 탈퇴</button>`;
   document.querySelector(".site-header").appendChild(d);
+}
+
+/* ─────────────────────────────── 채팅 ── */
+async function refreshChatUnread(){
+  if (!session){ chatUnread = 0; return; }
+  const { data, error } = await db.from("conversations")
+    .select("id, seller_id, buyer_id, last_at, seller_read_at, buyer_read_at");
+  if (error){ return; }
+  convos = data ?? [];
+  chatUnread = convos.filter(isConvUnread).length;
+  renderHeader();
+  setupChatListRealtime();
+}
+
+function isConvUnread(c){
+  if (!profile) return false;
+  const mine = c.seller_id === profile.id ? c.seller_read_at : c.buyer_read_at;
+  return new Date(c.last_at).getTime() > new Date(mine).getTime();
+}
+
+function setupChatListRealtime(){
+  if (listChannel || !session) return;
+  listChannel = db.channel("conv-list-" + session.user.id)
+    .on("postgres_changes",
+      { event: "*", schema: "public", table: "conversations" },
+      () => { softRefreshUnread(); })
+    .subscribe();
+}
+function teardownChatList(){
+  if (listChannel){ db.removeChannel(listChannel); listChannel = null; }
+  teardownChatRoom();
+}
+async function softRefreshUnread(){
+  if (!session) return;
+  const { data } = await db.from("conversations")
+    .select("id, seller_id, buyer_id, last_at, seller_read_at, buyer_read_at");
+  convos = data ?? [];
+  chatUnread = convos.filter(isConvUnread).length;
+  renderHeader();
+  if (!$("chatListModal").classList.contains("hidden")) renderChatList();
+}
+
+/* ── 채팅 목록 ── */
+async function openChatList(){
+  if (!session){ openAuth("login"); return; }
+  $("chatList").innerHTML = `<div class="empty" style="padding:14px 0">불러오는 중…</div>`;
+  openModal("chatListModal");
+  await loadChatList();
+}
+
+async function loadChatList(){
+  const { data, error } = await db.from("conversations")
+    .select(`id, product_id, seller_id, buyer_id, last_message, last_at,
+             seller_read_at, buyer_read_at,
+             product:products(id, name, images),
+             seller:profiles!conversations_seller_id_fkey(nickname),
+             buyer:profiles!conversations_buyer_id_fkey(nickname)`)
+    .order("last_at", { ascending: false });
+  if (error){
+    $("chatList").innerHTML = `<div class="empty" style="padding:14px 0">불러오지 못했어요.</div>`;
+    return;
+  }
+  convos = (data ?? []).map(c => ({
+    ...c,
+    seller_read_at: c.seller_read_at, buyer_read_at: c.buyer_read_at,
+  }));
+  chatUnread = convos.filter(isConvUnread).length;
+  renderHeader();
+  renderChatList();
+}
+
+function renderChatList(){
+  const el = $("chatList");
+  if (convos.length === 0){
+    el.innerHTML = `<div class="empty" style="padding:14px 0">
+      <img src="${PLACEHOLDER}" alt="" style="width:70px;border-radius:20px;margin-bottom:10px" /><br/>
+      아직 나눈 대화가 없어요.<br/>물품 상세에서 판매자에게 문의해보세요!</div>`;
+    return;
+  }
+  el.innerHTML = convos.map(c => {
+    const other = c.seller_id === profile.id ? c.buyer : c.seller;
+    const otherName = other?.nickname ?? "탈퇴한 성도";
+    const img = c.product?.images?.[0];
+    const thumb = img
+      ? `<img class="chat-row-thumb" src="${esc(img)}" alt="" />`
+      : `<div class="chat-row-thumb">🥕</div>`;
+    const unread = isConvUnread(c);
+    return `
+    <div class="rowitem chat-row ${unread ? "unread" : ""}" onclick="openConv('${c.id}')">
+      ${thumb}
+      <div class="rmain">
+        <div class="rname">${esc(otherName)}
+          <span style="font-weight:600;color:var(--muted);font-size:11px">· ${esc(c.product?.name ?? "삭제된 물품")}</span></div>
+        <div class="rsub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+          ${c.last_message ? esc(c.last_message) : "대화를 시작해보세요"}</div>
+      </div>
+      ${unread ? `<div class="cr-dot"></div>` : ""}
+    </div>`;
+  }).join("");
+}
+
+/* ── 채팅 시작 (구매자가 물품에서) ── */
+async function startChat(productId){
+  if (!session){ openAuth("login"); return; }
+  const { data, error } = await db.rpc("get_or_create_conversation", { p_product_id: productId });
+  if (error){
+    toast(error.code === "23514" ? "본인 물품에는 문의할 수 없어요" : "대화를 열지 못했어요", "err");
+    return;
+  }
+  closeDetail();
+  await openConv(data);
+}
+
+async function openChatById(convId){
+  await openConv(convId);
+}
+
+/* ── 대화방 열기 ── */
+async function openConv(convId, asAdmin = false){
+  adminChatView = asAdmin;
+  const { data: c, error } = await db.from("conversations")
+    .select(`id, product_id, seller_id, buyer_id, reported,
+             product:products(id, name, images),
+             seller:profiles!conversations_seller_id_fkey(nickname),
+             buyer:profiles!conversations_buyer_id_fkey(nickname)`)
+    .eq("id", convId).maybeSingle();
+  if (error || !c){ toast("대화를 열지 못했어요", "err"); return; }
+  curConv = c;
+
+  const iAmSeller = profile && c.seller_id === profile.id;
+  const other = iAmSeller ? c.buyer : c.seller;
+  $("crTitle").textContent = asAdmin
+    ? `${c.seller?.nickname ?? "?"} ↔ ${c.buyer?.nickname ?? "?"}`
+    : (other?.nickname ?? "탈퇴한 성도");
+  $("crSub").textContent = `🥕 ${c.product?.name ?? "삭제된 물품"}`;
+
+  // 관리자 열람 모드: 입력·신고 숨김
+  $("crInputBar").style.display = asAdmin ? "none" : "";
+  $("crReportBtn").style.display = asAdmin ? "none" : "";
+  document.querySelector(".chat-notice").style.display = asAdmin ? "none" : "";
+
+  closeModal("chatListModal");
+  closeModal("adminModal");
+  $("crBody").innerHTML = `<div class="empty" style="margin:auto">불러오는 중…</div>`;
+  openModal("chatRoomModal");
+  if (!asAdmin) history.replaceState({}, "", `${location.pathname}?chat=${c.id}`);
+
+  await loadMessages(c.id);
+  if (!asAdmin){
+    await markConvRead(c.id);
+    setupChatRoomRealtime(c.id);
+  } else {
+    $("crBody").insertAdjacentHTML("afterbegin",
+      `<div class="chat-admin-view">🗝️ 관리자 열람 모드 · 신고된 대화입니다</div>`);
+  }
+}
+
+async function loadMessages(convId){
+  const { data, error } = await db.from("messages")
+    .select("id, sender_id, body, created_at")
+    .eq("conv_id", convId).order("created_at");
+  if (error){ $("crBody").innerHTML = `<div class="empty" style="margin:auto">불러오지 못했어요.</div>`; return; }
+  curMsgs = data ?? [];
+  renderMessages();
+}
+
+function renderMessages(){
+  const el = $("crBody");
+  const adminBanner = adminChatView
+    ? `<div class="chat-admin-view">🗝️ 관리자 열람 모드 · 신고된 대화입니다</div>` : "";
+  if (curMsgs.length === 0){
+    el.innerHTML = adminBanner + `<div class="empty" style="margin:auto;font-size:13px">
+      아직 메시지가 없어요.${adminChatView ? "" : "<br/>먼저 인사를 건네보세요! 🥕"}</div>`;
+    return;
+  }
+  let html = adminBanner, lastDay = "";
+  for (const m of curMsgs){
+    const day = new Date(m.created_at).toLocaleDateString("ko-KR", { month: "long", day: "numeric" });
+    if (day !== lastDay){ html += `<div class="chat-day">${day}</div>`; lastDay = day; }
+    const mine = profile && m.sender_id === profile.id && !adminChatView;
+    const who = adminChatView
+      ? (m.sender_id === curConv.seller_id ? curConv.seller?.nickname : curConv.buyer?.nickname)
+      : null;
+    const time = new Date(m.created_at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+    html += `<div class="bubble ${mine ? "me" : "you"}">${
+      who ? `<b style="font-size:11px;opacity:.7">${esc(who)}</b><br/>` : ""}${esc(m.body)}<span class="btime">${time}</span></div>`;
+  }
+  el.innerHTML = html;
+  el.scrollTop = el.scrollHeight;
+}
+
+async function sendChat(){
+  const inp = $("crInput");
+  const body = inp.value.trim();
+  if (!body || !curConv) return;
+  inp.value = "";
+  const { error } = await db.from("messages").insert({
+    conv_id: curConv.id, sender_id: session.user.id, body });
+  if (error){ toast("메시지를 보내지 못했어요", "err"); inp.value = body; return; }
+  // 낙관적 추가 (realtime이 중복 방지)
+  if (!curMsgs.some(m => m._local === body)){
+    curMsgs.push({ id: "local-" + Date.now(), sender_id: session.user.id, body,
+      created_at: new Date().toISOString(), _local: body });
+    renderMessages();
+  }
+}
+
+function setupChatRoomRealtime(convId){
+  teardownChatRoom();
+  chatChannel = db.channel("chat-" + convId)
+    .on("postgres_changes",
+      { event: "INSERT", schema: "public", table: "messages", filter: `conv_id=eq.${convId}` },
+      (payload) => {
+        const m = payload.new;
+        if (curMsgs.some(x => x.id === m.id)) return;
+        // 로컬 임시 메시지 치환
+        const li = curMsgs.findIndex(x => x._local === m.body && x.sender_id === m.sender_id);
+        if (li >= 0) curMsgs.splice(li, 1);
+        curMsgs.push(m);
+        renderMessages();
+        if (m.sender_id !== session.user.id) markConvRead(convId);
+      })
+    .subscribe();
+}
+function teardownChatRoom(){
+  if (chatChannel){ db.removeChannel(chatChannel); chatChannel = null; }
+}
+
+async function markConvRead(convId){
+  if (!profile) return;
+  const c = curConv;
+  const col = (c && c.seller_id === profile.id) ? "seller_read_at" : "buyer_read_at";
+  await db.from("conversations").update({ [col]: new Date().toISOString() }).eq("id", convId);
+  const lc = convos.find(x => x.id === convId);
+  if (lc) lc[col] = new Date().toISOString();
+  chatUnread = convos.filter(isConvUnread).length;
+  renderHeader();
+}
+
+function closeChatRoom(){
+  teardownChatRoom();
+  closeModal("chatRoomModal");
+  curConv = null; curMsgs = [];
+  if (adminChatView){ adminChatView = false; return; }
+  history.replaceState({}, "", location.pathname);
+  softRefreshUnread();
+}
+
+/* ── 채팅 신고 ── */
+function openChatReport(){
+  if (!curConv) return;
+  chatReportConv = curConv.id;
+  $("chatRepDetail").value = ""; $("chatRepError").textContent = "";
+  const first = document.querySelector('input[name="chatRepReason"]');
+  if (first) first.checked = true;
+  openModal("chatReportModal");
+}
+
+async function submitChatReport(){
+  if (!chatReportConv) return;
+  const reason = document.querySelector('input[name="chatRepReason"]:checked')?.value ?? "기타";
+  const detail = $("chatRepDetail").value.trim();
+  const full = detail ? `${reason} · ${detail}` : reason;
+  const btn = $("chatRepBtn");
+  btn.disabled = true; btn.textContent = "접수 중…";
+  const { error } = await db.rpc("report_conversation", { p_conv_id: chatReportConv, p_reason: full });
+  btn.disabled = false; btn.textContent = "신고 접수하기";
+  if (error){ $("chatRepError").textContent = "접수하지 못했어요. 잠시 후 다시 시도해주세요."; return; }
+  closeModal("chatReportModal");
+  toast("신고가 접수됐어요. 관리자가 확인할게요 🙏");
+}
+
+/* ── 관리자: 신고된 채팅 ── */
+async function loadReportedChats(){
+  const el = $("reportedChatList");
+  const { data, error } = await db.rpc("admin_list_reported_chats");
+  if (error){ el.innerHTML = `<div class="empty" style="padding:12px 0">불러오지 못했어요.</div>`; return; }
+  if (!data || data.length === 0){
+    el.innerHTML = `<div class="empty" style="padding:12px 0;font-size:12.5px">신고된 채팅이 없어요. 평화롭네요 ☀️</div>`;
+    return;
+  }
+  el.innerHTML = data.map(c => `
+    <div class="rowitem">
+      <div class="rmain" style="cursor:pointer" onclick="openConv('${c.id}', true)">
+        <div class="rname">${esc(c.product_name)}</div>
+        <div class="rsub">${esc(c.seller_nick ?? "?")} ↔ ${esc(c.buyer_nick ?? "?")} · 메시지 ${c.msg_count}개</div>
+      </div>
+      <div class="racts">
+        <button class="mini-btn" onclick="openConv('${c.id}', true)">열람</button>
+        <button class="mini-btn" onclick="resolveChatReport('${c.id}')">해제</button>
+      </div>
+    </div>`).join("");
+}
+
+async function resolveChatReport(convId){
+  const { error } = await db.rpc("admin_resolve_chat", { p_conv_id: convId });
+  if (error){ toast("처리하지 못했어요", "err"); return; }
+  toast("신고를 처리 완료했어요");
+  loadReportedChats();
+}
+
+/* ─────────────────────────────── 성도 관리 ── */
+async function loadMembers(){
+  const { data, error } = await db.rpc("admin_list_members");
+  if (error){
+    $("memberList").innerHTML = `<div class="empty" style="padding:14px 0">목록을 불러오지 못했어요.</div>`;
+    return;
+  }
+  members = data ?? [];
+  renderMembers();
+}
+
+function renderMembers(){
+  const q = $("memberSearch").value.trim().toLowerCase();
+  const list = q
+    ? members.filter(m =>
+        (m.nickname ?? "").toLowerCase().includes(q) ||
+        (m.email ?? "").toLowerCase().includes(q))
+    : members;
+  const el = $("memberList");
+  if (list.length === 0){
+    el.innerHTML = `<div class="empty" style="padding:14px 0">해당하는 성도가 없어요.</div>`;
+    return;
+  }
+  el.innerHTML = list.map(m => {
+    const joined = new Date(m.created_at).toLocaleDateString("ko-KR",
+      { year: "2-digit", month: "numeric", day: "numeric" });
+    const isMe = profile && m.id === profile.id;
+    return `
+    <div class="rowitem">
+      <div class="rmain" style="cursor:default">
+        <div class="rname">${esc(m.nickname)}
+          ${m.is_admin ? `<span style="color:var(--carrot);font-size:10.5px">관리자</span>` : ""}</div>
+        <div class="rsub">${esc(m.email ?? "")} · ${joined} 가입 · 물품 ${m.product_count}개</div>
+      </div>
+      <div class="racts">
+        ${m.is_admin || isMe
+          ? `<span class="mini-btn" style="cursor:default;opacity:.4">보호됨</span>`
+          : `<button class="mini-btn danger"
+               onclick="openKick('${m.id}', ${JSON.stringify(m.nickname)})">강제 탈퇴</button>`}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function openKick(id, name){
+  kickTarget = id;
+  $("kickName").textContent = name;
+  $("kickBan").checked = true;
+  $("kickError").textContent = "";
+  openModal("kickModal");
+}
+
+async function doKick(){
+  if (!kickTarget) return;
+  const btn = $("kickBtn");
+  btn.disabled = true; btn.textContent = "처리 중…";
+  $("kickError").textContent = "";
+  const { data, error } = await db.functions.invoke("admin-remove-user", {
+    body: { targetId: kickTarget, ban: $("kickBan").checked },
+  });
+  btn.disabled = false; btn.textContent = "탈퇴 처리하기";
+
+  // 함수가 4xx/5xx면 supabase-js는 error만 주고 data는 null이 되므로,
+  // 응답 본문(JSON)에서 서버가 보낸 한국어 메시지를 꺼내온다.
+  let serverMsg = data?.error ?? null;
+  if (error && error.context && typeof error.context.json === "function"){
+    try { serverMsg = (await error.context.json())?.error ?? serverMsg; } catch(e){}
+  }
+  if (error || data?.error){
+    $("kickError").textContent = serverMsg ?? "처리에 실패했어요. 잠시 후 다시 시도해주세요.";
+    return;
+  }
+  closeModal("kickModal");
+  toast(data?.banned ? "탈퇴 처리하고 재가입을 차단했어요" : "탈퇴 처리했어요");
+  kickTarget = null;
+  await Promise.all([loadMembers(), loadProducts()]);
+  if ($("banListWrap") && !$("banListWrap").classList.contains("hidden")) loadBanList();
+}
+
+async function toggleBanList(){
+  const wrap = $("banListWrap");
+  const show = wrap.classList.contains("hidden");
+  wrap.classList.toggle("hidden", !show);
+  $("banListBtn").textContent = show ? "🚫 재가입 차단 목록 닫기" : "🚫 재가입 차단 목록 보기";
+  if (show) await loadBanList();
+}
+
+async function loadBanList(){
+  const { data, error } = await db.from("banned_emails")
+    .select("email, reason, created_at").order("created_at", { ascending: false });
+  const el = $("banList");
+  if (error){ el.innerHTML = `<div class="empty" style="padding:12px 0">불러오지 못했어요.</div>`; return; }
+  if (!data || data.length === 0){
+    el.innerHTML = `<div class="empty" style="padding:12px 0;font-size:12.5px">차단된 이메일이 없어요.</div>`;
+    return;
+  }
+  el.innerHTML = data.map(b => `
+    <div class="rowitem">
+      <div class="rmain" style="cursor:default">
+        <div class="rname">${esc(b.email)}</div>
+        <div class="rsub">${esc(b.reason || "차단됨")} · ${new Date(b.created_at).toLocaleDateString("ko-KR")}</div>
+      </div>
+      <div class="racts">
+        <button class="mini-btn" onclick="unban(${JSON.stringify(b.email)})">차단 해제</button>
+      </div>
+    </div>`).join("");
+}
+
+async function unban(email){
+  const { error } = await db.from("banned_emails").delete().eq("email", email);
+  if (error){ toast("해제하지 못했어요", "err"); return; }
+  toast("차단을 해제했어요");
+  loadBanList();
 }
 
 /* ─────────────────────────────── 사이트 문구 ── */
@@ -1966,6 +2535,12 @@ function renderDetailActions(p){
     }
   }
 
+  // ── 판매자에게 문의 (로그인 + 내 물품 아님)
+  if (session && !isMine){
+    html += `<button class="btn btn-block btn-soft" style="margin-top:8px"
+      onclick="startChat('${p.id}')">💬 판매자에게 문의하기</button>`;
+  }
+
   // ── 나눔 후기 (구매자 · 판매완료 후 7일)
   if (profile && p.reserved_by === profile.id && p.status === "판매완료" && within7d(p.sold_at)){
     html += hasReview(p.id)
@@ -2349,6 +2924,10 @@ async function openAdmin(){
   $("setFText").value   = siteSettings.footer_text ?? "";
   renderCatAdmin();
   loadReports();
+  loadReportedChats();
+  loadMembers();
+  $("banListWrap").classList.add("hidden");
+  $("banListBtn").textContent = "🚫 재가입 차단 목록 보기";
   openModal("adminModal");
 }
 
