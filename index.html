@@ -5,7 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>한마음 CAROTE · 밀라노 한마음교회 사랑나눔 바자회</title>
 <meta name="description" content="밀라노 한마음교회 사랑나눔 바자회 — 나눔으로 채우는 작은 장터" />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🥕%3C/text%3E%3C/svg%3E" />
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#FDFBF6" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="CAROTE" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&display=swap" rel="stylesheet" />
@@ -85,11 +92,12 @@ a{ color:inherit; text-decoration:none; }
 }
 .wordmark{ display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none; }
 .wordmark .carrot-badge{
-  width:38px; height:38px; border-radius:12px;
-  background:var(--carrot); display:grid; place-items:center;
-  font-size:20px; box-shadow:0 4px 10px rgba(232,100,27,.35);
+  width:40px; height:40px; border-radius:13px;
+  background:var(--butter); display:grid; place-items:center;
+  box-shadow:0 4px 10px rgba(232,100,27,.22);
   transform:rotate(-6deg);
 }
+.wordmark .carrot-badge svg{ width:26px; height:32px; }
 .wordmark h1{ font-size:20px; font-weight:800; letter-spacing:-0.03em; line-height:1.1; }
 .wordmark h1 em{ color:var(--carrot); font-style:normal; }
 .wordmark .flourish{
@@ -492,7 +500,7 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
 <header class="site-header">
   <div class="header-inner">
     <div class="wordmark" onclick="goHome()">
-      <div class="carrot-badge">🥕</div>
+      <div class="carrot-badge"><svg viewBox="40 22 90 128" aria-hidden="true"><ellipse cx="66" cy="52" rx="8" ry="17" fill="#3E7C4F" transform="rotate(-32 66 52)"/><ellipse cx="85" cy="49" rx="8" ry="19" fill="#4C9260"/><ellipse cx="104" cy="52" rx="8" ry="17" fill="#3E7C4F" transform="rotate(32 104 52)"/><path d="M52 78 C49 102 60 126 77 139 C81 145 89 145 93 139 C110 126 121 102 118 78 C117 70 112 66 106 67 C97 69 92 72 85 72 C78 72 73 69 64 67 C58 66 53 70 52 78 Z" fill="#E8641B"/><path d="M66 96 q5 4 10 5 M64 111 q5 4 10 5 M71 126 q4 3 8 4" stroke="#C24E12" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="81" y="83" width="8" height="38" rx="4" fill="#FDFBF6"/><rect x="70" y="94" width="30" height="8" rx="4" fill="#FDFBF6"/></svg></div>
       <div>
         <h1>한마음 <em>CAROTE</em></h1>
         <span class="flourish">mercatino della chiesa · Milano</span>
@@ -526,6 +534,13 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
       <button class="icon-btn" id="refreshBtn" title="새로고침" aria-label="새로고침">↻</button>
     </div>
     <div class="chips" id="chips"></div>
+    <div class="sortrow">
+      <select id="sortSel" onchange="setSort(this.value)" aria-label="정렬 방식">
+        <option value="new">✨ 최신순</option>
+        <option value="priceAsc">💶 낮은 기부금순</option>
+        <option value="priceDesc">💎 높은 기부금순</option>
+      </select>
+    </div>
   </div>
   <div class="grid" id="grid">
     <div class="skel"><div class="a"></div><div class="b"></div><div class="c"></div></div>
@@ -558,7 +573,7 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
       <div class="field"><label>이메일</label>
         <input type="email" id="loginEmail" required autocomplete="email" placeholder="email@example.com" /></div>
       <div class="field"><label>비밀번호</label>
-        <input type="password" id="loginPw" required autocomplete="current-password" placeholder="••••••" /></div>
+        <div class="pwwrap"><input type="password" id="loginPw" required autocomplete="current-password" placeholder="••••••" /><button type="button" class="pw-eye" onclick="togglePw('loginPw', this)" aria-label="비밀번호 표시">👁️</button></div></div>
       <div class="form-error" id="loginError"></div>
       <button class="btn btn-primary btn-block" type="submit">로그인</button>
       <button class="btn btn-block" type="button" onclick="sendReset()"
@@ -572,9 +587,9 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
         <input type="email" id="suEmail" required autocomplete="email" placeholder="email@example.com" />
         <div class="hint">예약·알림 소식을 받을 이메일이에요.</div></div>
       <div class="field"><label>비밀번호 (6자 이상)</label>
-        <input type="password" id="suPw" required minlength="6" autocomplete="new-password" placeholder="••••••" /></div>
+        <div class="pwwrap"><input type="password" id="suPw" required minlength="6" autocomplete="new-password" placeholder="••••••" /><button type="button" class="pw-eye" onclick="togglePw('suPw', this)" aria-label="비밀번호 표시">👁️</button></div></div>
       <div class="field"><label>비밀번호 확인</label>
-        <input type="password" id="suPw2" required minlength="6" autocomplete="new-password" placeholder="••••••" /></div>
+        <div class="pwwrap"><input type="password" id="suPw2" required minlength="6" autocomplete="new-password" placeholder="••••••" /><button type="button" class="pw-eye" onclick="togglePw('suPw2', this)" aria-label="비밀번호 표시">👁️</button></div></div>
       <div class="form-error" id="signupError"></div>
       <button class="btn btn-primary btn-block" type="submit">가입하기</button>
     </form>
@@ -590,7 +605,7 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
     <h2 style="margin-bottom:18px">새 비밀번호를 설정해주세요</h2>
     <form onsubmit="doPwUpdate(event)">
       <div class="field"><label>새 비밀번호 (6자 이상)</label>
-        <input type="password" id="newPw" required minlength="6" autocomplete="new-password" /></div>
+        <div class="pwwrap"><input type="password" id="newPw" required minlength="6" autocomplete="new-password" /><button type="button" class="pw-eye" onclick="togglePw('newPw', this)" aria-label="비밀번호 표시">👁️</button></div></div>
       <div class="form-error" id="pwResetError"></div>
       <button class="btn btn-primary btn-block" type="submit">변경하기</button>
     </form>
@@ -662,7 +677,8 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
     <h2 style="margin-bottom:18px">내 활동</h2>
     <div class="tabs">
       <button id="tabMine" class="active" onclick="switchMyTab('mine')">내가 올린 물품</button>
-      <button id="tabReserved" onclick="switchMyTab('reserved')">내가 예약한 물품</button>
+      <button id="tabReserved" onclick="switchMyTab('reserved')">예약한 물품</button>
+      <button id="tabFavs" onclick="switchMyTab('favs')">🧡 찜</button>
     </div>
     <div class="rowlist" id="myList"></div>
   </div></div>
@@ -698,6 +714,8 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
     <p style="font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:18px">
       물품의 수정·삭제·HOT 지정은 각 물품 상세 화면에서 바로 할 수 있어요.</p>
     <div id="adminStats" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px"></div>
+    <h2 style="font-size:15px;margin-bottom:10px">🚨 신고된 물품</h2>
+    <div class="rowlist" id="reportList" style="margin-bottom:20px"></div>
     <h2 style="font-size:15px;margin-bottom:10px">카테고리 관리</h2>
     <div class="rowlist" id="catList" style="margin-bottom:12px"></div>
     <div style="display:flex;gap:8px">
@@ -716,7 +734,80 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
 .stat-box{ flex:1; min-width:100px; background:var(--butter); border-radius:14px; padding:12px 14px; }
 .stat-box .n{ font-size:19px; font-weight:800; font-variant-numeric:tabular-nums; }
 .stat-box .l{ font-size:11px; color:var(--muted); font-weight:700; }
+.pwwrap{ position:relative; }
+.pwwrap input{ width:100%; padding-right:44px; }
+.pw-eye{ position:absolute; right:4px; top:50%; transform:translateY(-50%);
+  background:none; border:none; cursor:pointer; font-size:16px; padding:8px; opacity:.5; }
+.pw-eye:hover{ opacity:1; }
+.fav-btn{ position:absolute; bottom:8px; right:8px; z-index:2; width:34px; height:34px; border-radius:50%;
+  background:rgba(253,251,246,.92); border:none; cursor:pointer; font-size:15px;
+  display:grid; place-items:center; box-shadow:0 2px 8px rgba(38,32,26,.18);
+  transition:transform .15s ease; }
+.fav-btn:active{ transform:scale(1.3); }
+.sortrow{ display:flex; justify-content:center; }
+#sortSel{ background:var(--paper); border:1.5px solid var(--line); border-radius:999px;
+  padding:7px 16px; font-weight:700; font-size:12.5px; color:var(--muted);
+  outline:none; cursor:pointer; appearance:none; }
+#sortSel:focus{ border-color:var(--carrot); }
 </style>
+
+<!-- ═══════════════ 비밀번호 변경 ═══════════════ -->
+<div class="modal hidden" id="pwChangeModal">
+  <div class="backdrop" onclick="closeModal('pwChangeModal')"></div>
+  <div class="panel"><div class="panel-pad">
+    <button class="close-x" onclick="closeModal('pwChangeModal')">✕</button>
+    <div class="panel-eyebrow">sicurezza</div>
+    <h2 style="margin-bottom:18px">비밀번호 변경</h2>
+    <form onsubmit="doPwChange(event)">
+      <div class="field"><label>새 비밀번호 (6자 이상)</label>
+        <div class="pwwrap"><input type="password" id="chPw" required minlength="6" autocomplete="new-password" placeholder="••••••" /><button type="button" class="pw-eye" onclick="togglePw('chPw', this)" aria-label="비밀번호 표시">👁️</button></div></div>
+      <div class="field"><label>새 비밀번호 확인</label>
+        <div class="pwwrap"><input type="password" id="chPw2" required minlength="6" autocomplete="new-password" placeholder="••••••" /><button type="button" class="pw-eye" onclick="togglePw('chPw2', this)" aria-label="비밀번호 표시">👁️</button></div></div>
+      <div class="form-error" id="pwChangeError"></div>
+      <button class="btn btn-primary btn-block" type="submit" id="pwChangeBtn">변경하기</button>
+    </form>
+  </div></div>
+</div>
+
+<!-- ═══════════════ 신고 ═══════════════ -->
+<div class="modal hidden" id="reportModal">
+  <div class="backdrop" onclick="closeModal('reportModal')"></div>
+  <div class="panel"><div class="panel-pad">
+    <button class="close-x" onclick="closeModal('reportModal')">✕</button>
+    <div class="panel-eyebrow">segnalazione</div>
+    <h2 style="margin-bottom:6px">물품 신고하기</h2>
+    <p style="font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:14px">
+      신고 내용은 관리자에게만 전달돼요.</p>
+    <label class="check-row"><span>부적절한 내용이에요</span>
+      <input type="radio" name="repReason" value="부적절한 내용" checked /></label>
+    <label class="check-row"><span>스팸 · 광고예요</span>
+      <input type="radio" name="repReason" value="스팸/광고" /></label>
+    <label class="check-row"><span>기타</span>
+      <input type="radio" name="repReason" value="기타" /></label>
+    <div class="field" style="margin-top:10px"><label>상세 내용 (선택)</label>
+      <textarea id="repDetail" placeholder="관리자에게 전할 내용을 적어주세요."></textarea></div>
+    <div class="form-error" id="reportError"></div>
+    <button class="btn btn-primary btn-block" id="reportBtn" onclick="submitReport()">신고 접수하기</button>
+  </div></div>
+</div>
+
+<!-- ═══════════════ 회원 탈퇴 ═══════════════ -->
+<div class="modal hidden" id="delAcctModal">
+  <div class="backdrop" onclick="closeModal('delAcctModal')"></div>
+  <div class="panel"><div class="panel-pad">
+    <button class="close-x" onclick="closeModal('delAcctModal')">✕</button>
+    <div class="panel-eyebrow">arrivederci</div>
+    <h2 style="margin-bottom:10px">회원 탈퇴</h2>
+    <p style="font-size:13px;color:var(--muted);font-weight:600;line-height:1.7;margin-bottom:14px">
+      탈퇴하면 계정과 이메일, 올린 물품과 사진, 찜·알림 설정이
+      <b style="color:var(--danger)">모두 삭제되며 되돌릴 수 없어요.</b><br/>
+      판매완료된 나눔 기록은 이름 없이(익명) 모금 내역에만 남습니다.</p>
+    <div class="field"><label>계속하려면 아래에 <b>탈퇴</b>라고 입력해주세요</label>
+      <input type="text" id="delConfirm" placeholder="탈퇴" autocomplete="off" /></div>
+    <div class="form-error" id="delAcctError"></div>
+    <button class="btn btn-danger btn-block" id="delAcctBtn" onclick="doDeleteAccount()">탈퇴하기</button>
+  </div></div>
+</div>
 
 <div id="toasts"></div>
 
@@ -754,15 +845,14 @@ let postImages = [];         // [{kind:'url', url} | {kind:'file', file, preview
 let editingId = null;
 let myTab = "mine";
 let dropdownOpen = false;
+let myFavs = new Set();      // 내가 찜한 product_id
+let sortMode = "new";        // new | priceAsc | priceDesc
+let reportTarget = null;
 
 const PLACEHOLDER =
   "data:image/svg+xml," + encodeQuoted(
-  `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'>
-    <rect width='200' height='200' fill='#FBF1E4'/>
-    <path d='M100 162 C 88 150 76 112 79 90 C 92 77 108 77 121 90 C 124 112 112 150 100 162 Z' fill='#E8641B'/>
-    <path d='M100 78 C 96 66 88 60 78 58 C 84 70 92 76 100 78 Z' fill='#3E7C4F'/>
-    <path d='M100 78 C 104 66 112 60 122 58 C 116 70 108 76 100 78 Z' fill='#3E7C4F'/>
-    <path d='M100 76 C 99 64 101 56 106 48 C 108 60 105 70 100 76 Z' fill='#57975F'/>
+  `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 170 170'>
+    <rect width='170' height='170' fill='#FBF1E4'/><ellipse cx='66' cy='52' rx='8' ry='17' fill='#3E7C4F' transform='rotate(-32 66 52)'/><ellipse cx='85' cy='49' rx='8' ry='19' fill='#4C9260'/><ellipse cx='104' cy='52' rx='8' ry='17' fill='#3E7C4F' transform='rotate(32 104 52)'/><path d='M52 78 C49 102 60 126 77 139 C81 145 89 145 93 139 C110 126 121 102 118 78 C117 70 112 66 106 67 C97 69 92 72 85 72 C78 72 73 69 64 67 C58 66 53 70 52 78 Z' fill='#E8641B'/><path d='M66 96 q5 4 10 5 M64 111 q5 4 10 5 M71 126 q4 3 8 4' stroke='#C24E12' stroke-width='2' stroke-linecap='round' fill='none'/><rect x='81' y='83' width='8' height='38' rx='4' fill='#FDFBF6'/><rect x='70' y='94' width='30' height='8' rx='4' fill='#FDFBF6'/>
   </svg>`);
 
 /* ─────────────────────────────────────────── utilities ── */
@@ -818,10 +908,14 @@ async function init(){
     // 잠금이 풀리지 않아 앱 전체가 멈춥니다. setTimeout으로 잠금 밖에서 실행.
     setTimeout(async () => {
       if (event === "SIGNED_IN" || event === "INITIAL_SESSION"){
-        if (s) await loadProfile();
+        if (s){ await loadProfile(); await loadFavs(); }
         renderHeader();
+        if (products.length) renderGrid();
       }
-      if (event === "SIGNED_OUT"){ profile = null; renderHeader(); renderGrid(); }
+      if (event === "SIGNED_OUT"){
+        profile = null; myFavs = new Set();
+        renderHeader(); renderGrid();
+      }
     }, 0);
   });
 
@@ -874,7 +968,7 @@ async function loadCategories(){
 
 async function loadProducts(){
   const { data, error } = await db.from("products")
-    .select(`id, name, price, status, description, images, is_hot, created_at,
+    .select(`id, name, price, status, description, images, is_hot, created_at, sold_at,
              category_id, seller_id, reserved_by,
              category:categories(id, name, emoji),
              seller:profiles!products_seller_id_fkey(id, nickname),
@@ -923,10 +1017,170 @@ function toggleDropdown(force){
     <button onclick="toggleDropdown(false); openMy()">📦 내 활동</button>
     <button onclick="toggleDropdown(false); openNotify()">🔔 알림 설정</button>
     <button onclick="toggleDropdown(false); changeNickname()">✏️ 닉네임 변경</button>
+    <button onclick="toggleDropdown(false); openPwChange()">🔒 비밀번호 변경</button>
     ${profile?.is_admin ? `<hr/><button onclick="toggleDropdown(false); openAdmin()">🗝️ 관리자</button>` : ""}
     <hr/>
-    <button onclick="toggleDropdown(false); doLogout()" style="color:var(--danger)">로그아웃</button>`;
+    <button onclick="toggleDropdown(false); doLogout()" style="color:var(--danger)">로그아웃</button>
+    <button onclick="toggleDropdown(false); openDeleteAccount()"
+      style="color:var(--muted);font-size:11.5px">회원 탈퇴</button>`;
   document.querySelector(".site-header").appendChild(d);
+}
+
+/* ─────────────────────────────── 찜하기 ── */
+async function loadFavs(){
+  if (!session){ myFavs = new Set(); return; }
+  const { data } = await db.from("favorites")
+    .select("product_id").eq("user_id", session.user.id);
+  myFavs = new Set((data ?? []).map(r => r.product_id));
+}
+
+async function toggleFav(id){
+  if (!session){ openAuth("login"); return; }
+  const on = myFavs.has(id);
+  if (on){
+    myFavs.delete(id);
+    await db.from("favorites").delete()
+      .match({ user_id: session.user.id, product_id: id });
+  } else {
+    myFavs.add(id);
+    const { error } = await db.from("favorites")
+      .insert({ user_id: session.user.id, product_id: id });
+    if (error){ myFavs.delete(id); toast("찜하지 못했어요", "err"); refreshFavUI(id); return; }
+  }
+  toast(on ? "찜을 해제했어요" : "찜 목록에 담았어요 🧡");
+  refreshFavUI(id);
+}
+
+function refreshFavUI(id){
+  renderGrid();
+  if (detailId === id){
+    const p = products.find(x => x.id === id);
+    if (p) renderDetailActions(p);
+  }
+  renderMyList();
+}
+
+/* ─────────────────────────────── 정렬 ── */
+function setSort(v){ sortMode = v; renderGrid(); }
+
+/* ─────────────────────────────── 비밀번호 ── */
+function togglePw(id, btn){
+  const inp = $(id);
+  const show = inp.type === "password";
+  inp.type = show ? "text" : "password";
+  btn.textContent = show ? "🙈" : "👁️";
+}
+
+function openPwChange(){
+  if (!session){ openAuth("login"); return; }
+  $("chPw").value = ""; $("chPw2").value = ""; $("pwChangeError").textContent = "";
+  openModal("pwChangeModal");
+}
+
+async function doPwChange(e){
+  e.preventDefault();
+  const a = $("chPw").value, b = $("chPw2").value;
+  if (a !== b){ $("pwChangeError").textContent = "비밀번호가 서로 달라요."; return; }
+  const btn = $("pwChangeBtn");
+  btn.disabled = true; btn.textContent = "변경 중…";
+  const { error } = await db.auth.updateUser({ password: a });
+  btn.disabled = false; btn.textContent = "변경하기";
+  if (error){
+    $("pwChangeError").textContent = /different|same/i.test(error.message)
+      ? "기존과 다른 비밀번호를 입력해주세요." : "변경하지 못했어요. 잠시 후 다시 시도해주세요.";
+    return;
+  }
+  closeModal("pwChangeModal");
+  toast("비밀번호가 변경됐어요 🔒");
+}
+
+/* ─────────────────────────────── 신고 ── */
+function openReport(id){
+  if (!session){ openAuth("login"); return; }
+  reportTarget = id;
+  $("repDetail").value = ""; $("reportError").textContent = "";
+  const first = document.querySelector('input[name="repReason"]');
+  if (first) first.checked = true;
+  openModal("reportModal");
+}
+
+async function submitReport(){
+  if (!reportTarget || !session) return;
+  const reason = document.querySelector('input[name="repReason"]:checked')?.value ?? "기타";
+  const btn = $("reportBtn");
+  btn.disabled = true; btn.textContent = "접수 중…";
+  const { error } = await db.from("reports").insert({
+    product_id: reportTarget, reporter_id: session.user.id,
+    reason, detail: $("repDetail").value.trim(),
+  });
+  btn.disabled = false; btn.textContent = "신고 접수하기";
+  if (error){
+    $("reportError").textContent = error.code === "23505"
+      ? "이미 신고하신 물품이에요. 관리자가 확인 중입니다."
+      : "접수하지 못했어요. 잠시 후 다시 시도해주세요.";
+    return;
+  }
+  closeModal("reportModal");
+  toast("신고가 접수됐어요. 관리자가 확인할게요 🙏");
+}
+
+async function loadReports(){
+  const el = $("reportList");
+  const { data, error } = await db.from("reports")
+    .select(`id, reason, detail, created_at, product_id,
+             product:products(name),
+             reporter:profiles!reports_reporter_id_fkey(nickname)`)
+    .order("created_at", { ascending: false });
+  if (error){
+    el.innerHTML = `<div class="empty" style="padding:14px 0">신고 내역을 불러오지 못했어요.</div>`;
+    return;
+  }
+  if (!data || data.length === 0){
+    el.innerHTML = `<div class="empty" style="padding:14px 0">접수된 신고가 없어요. 평화롭네요 ☀️</div>`;
+    return;
+  }
+  el.innerHTML = data.map(r => `
+    <div class="rowitem">
+      <div class="rmain" onclick="closeModal('adminModal'); openDetail('${r.product_id}')">
+        <div class="rname">${esc(r.product?.name ?? "(삭제된 물품)")}</div>
+        <div class="rsub">${esc(r.reason)}${r.detail ? " · " + esc(r.detail) : ""}
+          — ${esc(r.reporter?.nickname ?? "?")}님 신고</div>
+      </div>
+      <div class="racts">
+        <button class="mini-btn" onclick="resolveReport(${r.id})">처리 완료</button>
+      </div>
+    </div>`).join("");
+}
+
+async function resolveReport(id){
+  await db.from("reports").delete().eq("id", id);
+  loadReports();
+  toast("신고를 처리 완료했어요");
+}
+
+/* ─────────────────────────────── 회원 탈퇴 ── */
+function openDeleteAccount(){
+  if (!session){ openAuth("login"); return; }
+  $("delConfirm").value = ""; $("delAcctError").textContent = "";
+  openModal("delAcctModal");
+}
+
+async function doDeleteAccount(){
+  if ($("delConfirm").value.trim() !== "탈퇴"){
+    $("delAcctError").textContent = "확인을 위해 '탈퇴'라고 입력해주세요.";
+    return;
+  }
+  const btn = $("delAcctBtn");
+  btn.disabled = true; btn.textContent = "탈퇴 처리 중…";
+  const { data, error } = await db.functions.invoke("delete-account");
+  if (error || data?.error){
+    btn.disabled = false; btn.textContent = "탈퇴하기";
+    $("delAcctError").textContent = "탈퇴 처리에 실패했어요. 잠시 후 다시 시도해주세요.";
+    return;
+  }
+  await db.auth.signOut();
+  alert("탈퇴가 완료되었습니다. 그동안 함께해주셔서 감사했습니다. 🙏");
+  location.href = location.pathname;
 }
 
 /* ─────────────────────────────────────────────── auth ── */
@@ -1056,7 +1310,9 @@ function visibleProducts(){
       (p.name || "").toLowerCase().includes(q) ||
       (p.description || "").toLowerCase().includes(q));
   }
-  // 판매완료는 뒤로
+  if (sortMode === "priceAsc")  list.sort((a, b) => Number(a.price) - Number(b.price));
+  if (sortMode === "priceDesc") list.sort((a, b) => Number(b.price) - Number(a.price));
+  // 판매완료는 항상 뒤로
   list.sort((a, b) => (a.status === "판매완료") - (b.status === "판매완료"));
   return list;
 }
@@ -1065,8 +1321,9 @@ function renderGrid(){
   const list = visibleProducts();
   const grid = $("grid");
   if (list.length === 0){
-    grid.innerHTML = `<div class="empty"><div class="big">🥕</div>
-      아직 여기엔 물품이 없어요.<br/>가장 먼저 나눔을 시작해보시겠어요?</div>`;
+    grid.innerHTML = `<div class="empty"><img src="${PLACEHOLDER}" alt=""
+        style="width:76px;border-radius:22px;margin-bottom:12px" />
+      <br/>아직 여기엔 물품이 없어요.<br/>가장 먼저 나눔을 시작해보시겠어요?</div>`;
     return;
   }
   grid.innerHTML = list.map(p => {
@@ -1080,12 +1337,14 @@ function renderGrid(){
         <div class="badges"><span class="pill ${statusClass(p.status)}">${esc(p.status)}</span></div>
         ${p.images && p.images.length > 1 ? `<span class="pill count">📷 ${p.images.length}</span>` : ""}
         ${p.is_hot && p.status !== "판매완료" ? `<span class="pill hot">🔥 인기</span>` : ""}
+        <button class="fav-btn" onclick="event.stopPropagation(); toggleFav('${p.id}')"
+          aria-label="찜">${myFavs.has(p.id) ? "🧡" : "🤍"}</button>
       </div>
       <div class="body">
         <div class="cat">${catLabel}</div>
         <div class="name">${esc(p.name)}</div>
         <div class="price ${Number(p.price) === 0 ? "free" : ""}">${fmtPrice(p.price)}</div>
-        <div class="seller">${esc(p.seller?.nickname ?? "")} 님의 나눔</div>
+        <div class="seller">${p.seller ? esc(p.seller.nickname) + " 님의 나눔" : "탈퇴한 성도의 나눔"}</div>
       </div>
     </article>`;
   }).join("");
@@ -1104,7 +1363,7 @@ function openDetail(id){
   const priceEl = $("dPrice");
   priceEl.textContent = fmtPrice(p.price, true);
   priceEl.classList.toggle("free", Number(p.price) === 0);
-  $("dSeller").innerHTML = `<b>${esc(p.seller?.nickname ?? "알 수 없음")}</b> 님의 나눔 ·
+  $("dSeller").innerHTML = `<b>${esc(p.seller?.nickname ?? "탈퇴한 성도")}</b> 님의 나눔 ·
     ${new Date(p.created_at).toLocaleDateString("ko-KR", { month: "long", day: "numeric" })} 등록`;
 
   const catLabel = p.category ? `${esc(p.category.emoji)} ${esc(p.category.name)}` : "🎁 미분류";
@@ -1191,9 +1450,19 @@ function renderDetailActions(p){
     }
   }
 
-  // ── 공유
+  // ── 찜
+  if (!isMine){
+    html += `<button class="btn btn-block btn-soft" style="margin-top:8px" onclick="toggleFav('${p.id}')">
+      ${myFavs.has(p.id) ? "🧡 찜 해제하기" : "🤍 찜하기"}</button>`;
+  }
+
+  // ── 공유 / 신고
   html += `<button class="btn btn-block" style="color:var(--muted);font-size:12.5px;margin-top:6px"
     onclick="shareItem('${p.id}')">🔗 링크 복사해서 공유하기</button>`;
+  if (session && !isMine){
+    html += `<button class="btn btn-block" style="color:var(--muted);font-size:11.5px"
+      onclick="openReport('${p.id}')">🚨 이 물품 신고하기</button>`;
+  }
 
   el.innerHTML = html;
 }
@@ -1405,18 +1674,23 @@ function switchMyTab(tab){
   myTab = tab;
   $("tabMine").classList.toggle("active", tab === "mine");
   $("tabReserved").classList.toggle("active", tab === "reserved");
+  $("tabFavs").classList.toggle("active", tab === "favs");
   renderMyList();
 }
 function renderMyList(){
   if (!profile) return;
   const list = myTab === "mine"
     ? products.filter(p => p.seller_id === profile.id)
-    : products.filter(p => p.reserved_by === profile.id && p.status === "예약중");
+    : myTab === "reserved"
+    ? products.filter(p => p.reserved_by === profile.id && p.status === "예약중")
+    : products.filter(p => myFavs.has(p.id));
   const el = $("myList");
   if (!el || $("myModal").classList.contains("hidden")) return;
   if (list.length === 0){
     el.innerHTML = `<div class="empty" style="padding:34px 0">
-      ${myTab === "mine" ? "아직 올린 물품이 없어요.<br/>첫 나눔을 시작해보세요! 🥕" : "예약한 물품이 없어요."}</div>`;
+      ${myTab === "mine" ? "아직 올린 물품이 없어요.<br/>첫 나눔을 시작해보세요! 🥕"
+        : myTab === "reserved" ? "예약한 물품이 없어요."
+        : "찜한 물품이 없어요.<br/>마음에 드는 물품의 🤍를 눌러보세요!"}</div>`;
     return;
   }
   el.innerHTML = list.map(p => `
@@ -1433,7 +1707,9 @@ function renderMyList(){
         ${myTab === "mine"
           ? `<button class="mini-btn" onclick="openPost('${p.id}')">수정</button>
              <button class="mini-btn danger" onclick="deleteProduct('${p.id}')">삭제</button>`
-          : `<button class="mini-btn danger" onclick="cancelReserve('${p.id}')">예약 취소</button>`}
+          : myTab === "reserved"
+          ? `<button class="mini-btn danger" onclick="cancelReserve('${p.id}')">예약 취소</button>`
+          : `<button class="mini-btn" onclick="toggleFav('${p.id}')">찜 해제</button>`}
       </div>
     </div>`).join("");
 }
@@ -1501,6 +1777,7 @@ async function openAdmin(){
     <div class="stat-box"><div class="n">${sold.length}</div><div class="l">나눔 완료</div></div>
     <div class="stat-box"><div class="n">${count ?? "-"}</div><div class="l">가입 성도</div></div>`;
   renderCatAdmin();
+  loadReports();
   openModal("adminModal");
 }
 
