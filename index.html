@@ -146,10 +146,6 @@ a{ color:inherit; text-decoration:none; }
   padding:26px 30px; display:flex; align-items:center; justify-content:space-between;
   gap:20px; flex-wrap:wrap; position:relative; overflow:hidden;
 }
-.ledger::after{
-  content:"🥕"; position:absolute; right:-18px; bottom:-26px; font-size:110px;
-  opacity:.07; transform:rotate(14deg); pointer-events:none;
-}
 .ledger .eyebrow{
   font-family:var(--font-hand); font-size:18px; color:var(--carrot); font-weight:600;
 }
@@ -511,12 +507,19 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
 </header>
 <div class="awning" aria-hidden="true"></div>
 
+<!-- ═══════════════ 장터 / 게시판 전환 ═══════════════ -->
+<nav class="view-tabs">
+  <button id="vtMarket" class="on" onclick="switchView('market')">🥕 장터</button>
+  <button id="vtBoard" onclick="switchView('board')">💬 게시판</button>
+</nav>
+<button class="notice-strip hidden" id="noticeStrip"></button>
+
 <!-- ═══════════════ 사랑나눔 현황 ═══════════════ -->
 <section class="ledger-wrap">
   <div class="ledger">
     <div>
-      <div class="eyebrow">offerta d'amore ♡</div>
-      <div class="label">지금까지 모인 사랑나눔</div>
+      <div class="eyebrow" id="bannerEyebrow">offerta d'amore ♡</div>
+      <div class="label" id="bannerLabel">지금까지 모인 사랑나눔</div>
       <div class="amount" id="raisedAmount">€0</div>
     </div>
     <div class="ledger-right">
@@ -550,11 +553,22 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
   </div>
 </main>
 
+<!-- ═══════════════ BOARD ═══════════════ -->
+<main id="board-top" class="hidden">
+  <div class="board-head">
+    <div class="chips" id="boardChips"></div>
+    <button class="btn btn-primary" onclick="openPostWrite()">✏️ 글쓰기</button>
+  </div>
+  <div class="postlist" id="postList">
+    <div class="skel"><div class="a" style="aspect-ratio:auto;height:64px"></div></div>
+  </div>
+</main>
+
 <button id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="맨 위로">↑</button>
 
 <footer>
-  <div class="f-hand">fatto con amore, a Milano</div>
-  <p>밀라노 한마음교회 사랑나눔 바자회 · 판매 수익금은 전액 사랑나눔 헌금으로 사용됩니다</p>
+  <div class="f-hand" id="footerHand">fatto con amore, a Milano</div>
+  <p id="footerText">밀라노 한마음교회 사랑나눔 바자회 · 판매 수익금은 전액 사랑나눔 헌금으로 사용됩니다</p>
 </footer>
 
 <!-- ═══════════════ 로그인 / 회원가입 ═══════════════ -->
@@ -686,12 +700,17 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
 
 <!-- ═══════════════ 알림 설정 ═══════════════ -->
 <div class="modal hidden" id="notifyModal">
-  <div class="backdrop" onclick="closeModal('notifyModal')"></div>
+  <div class="backdrop" onclick="closeNotifyModal()"></div>
   <div class="panel"><div class="panel-pad">
-    <button class="close-x" onclick="closeModal('notifyModal')">✕</button>
+    <button class="close-x" onclick="closeNotifyModal()">✕</button>
     <div class="panel-eyebrow">avvisami!</div>
-    <h2>이메일 알림 설정</h2>
+    <h2 id="notifyTitle">이메일 알림 설정</h2>
     <p style="font-size:12.5px;color:var(--muted);font-weight:600;margin:6px 0 18px" id="notifyEmailLine"></p>
+    <label class="check-row">
+      <span>📢 공지 이메일 받기</span>
+      <input type="checkbox" id="noticeMailChk" />
+    </label>
+    <hr style="border:none;border-top:1.5px dashed var(--line);margin:12px 0" />
     <label class="check-row" id="subAllRow">
       <span>🔔 모든 새 물품 알림 받기</span>
       <input type="checkbox" id="subAll" onchange="renderNotifyRows()" />
@@ -700,7 +719,7 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
       <p style="font-size:12px;color:var(--muted);font-weight:700;margin:14px 0 8px">또는, 원하는 카테고리만 골라서 받기</p>
       <div id="subCatList"></div>
     </div>
-    <button class="btn btn-primary btn-block" style="margin-top:14px" onclick="saveSubs()">저장하기</button>
+    <button class="btn btn-primary btn-block" style="margin-top:14px" id="subSaveBtn" onclick="saveSubs()">저장하기</button>
   </div></div>
 </div>
 
@@ -714,6 +733,15 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
     <p style="font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:18px">
       물품의 수정·삭제·HOT 지정은 각 물품 상세 화면에서 바로 할 수 있어요.</p>
     <div id="adminStats" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px"></div>
+    <h2 style="font-size:15px;margin-bottom:10px">✍️ 사이트 문구</h2>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px">
+      <input type="text" id="setEyebrow" class="admin-inp" maxlength="60" placeholder="배너 작은 문구" />
+      <input type="text" id="setLabel" class="admin-inp" maxlength="60" placeholder="배너 제목" />
+      <input type="text" id="setFHand" class="admin-inp" maxlength="60" placeholder="하단 손글씨 문구" />
+      <input type="text" id="setFText" class="admin-inp" maxlength="140" placeholder="하단 안내 문구" />
+    </div>
+    <button class="btn btn-soft btn-block" style="margin-bottom:20px" onclick="saveSettings()">문구 저장하기</button>
+
     <h2 style="font-size:15px;margin-bottom:10px">🚨 신고된 물품</h2>
     <div class="rowlist" id="reportList" style="margin-bottom:20px"></div>
     <h2 style="font-size:15px;margin-bottom:10px">카테고리 관리</h2>
@@ -749,7 +777,101 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
   padding:7px 16px; font-weight:700; font-size:12.5px; color:var(--muted);
   outline:none; cursor:pointer; appearance:none; }
 #sortSel:focus{ border-color:var(--carrot); }
+.view-tabs{ max-width:1180px; margin:18px auto 0; padding:0 20px; display:flex; gap:8px; justify-content:center; }
+.view-tabs button{ flex:0 1 200px; padding:11px 18px; border-radius:999px; border:1.5px solid var(--line);
+  background:var(--card); font-weight:800; font-size:14px; color:var(--muted); cursor:pointer;
+  transition:all .15s ease; }
+.view-tabs button.on{ background:var(--carrot); border-color:var(--carrot); color:#fff;
+  box-shadow:0 6px 14px rgba(232,100,27,.28); }
+.notice-strip{ display:flex; align-items:center; gap:8px; width:calc(100% - 40px); max-width:1140px;
+  margin:16px auto -6px; background:#FFF4E0; border:1.5px solid #F0D9BA; border-radius:14px;
+  padding:11px 16px; font-weight:700; font-size:13px; color:var(--ink); cursor:pointer; text-align:left; }
+.notice-strip b{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+.notice-strip .go{ color:var(--carrot); font-size:11.5px; font-weight:800; flex:none; }
+#board-top{ max-width:800px; }
+.board-head{ display:flex; align-items:center; justify-content:space-between; gap:10px;
+  flex-wrap:wrap; margin-bottom:20px; }
+.postlist{ display:flex; flex-direction:column; gap:10px; }
+.post-row{ background:var(--card); border:1.5px solid var(--line); border-radius:16px;
+  padding:14px 18px; cursor:pointer; transition:border-color .15s, transform .15s; }
+.post-row:hover{ border-color:var(--carrot); transform:translateY(-1px); }
+.post-row.notice{ background:#FFF7EA; border-color:#F0D9BA; }
+.post-row .pr-top{ display:flex; align-items:center; gap:8px; min-width:0; }
+.post-row .pr-board{ font-size:10.5px; font-weight:800; padding:3px 8px; border-radius:8px;
+  background:var(--butter); color:var(--muted); flex:none; }
+.post-row.notice .pr-board{ background:var(--carrot); color:#fff; }
+.post-row .pr-title{ font-weight:700; font-size:14.5px; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; }
+.post-row .pr-cmt{ flex:none; font-size:11.5px; font-weight:800; color:var(--carrot); }
+.post-row .pr-sub{ font-size:11.5px; color:var(--muted); font-weight:600; margin-top:5px; }
+.pv-content{ white-space:pre-wrap; font-size:14px; line-height:1.75; font-weight:500;
+  margin:14px 0; overflow-wrap:break-word; }
+.pv-img{ width:100%; border-radius:14px; margin:6px 0; }
+.pv-product{ display:inline-flex; align-items:center; gap:6px; background:var(--butter);
+  border-radius:10px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer; margin-top:6px; }
+.cmt{ display:flex; gap:8px; padding:11px 0; border-bottom:1px dashed var(--line); font-size:13px; }
+.cmt .c-main{ flex:1; min-width:0; }
+.cmt .c-author{ font-weight:800; font-size:12px; }
+.cmt .c-date{ color:var(--muted); font-size:10.5px; font-weight:600; margin-left:6px; }
+.cmt .c-text{ font-weight:500; margin-top:3px; white-space:pre-wrap; overflow-wrap:break-word; }
+.cmt-form{ display:flex; gap:8px; margin-top:12px; }
+.cmt-form input{ flex:1; min-width:0; background:var(--paper); border:1.5px solid var(--line);
+  border-radius:12px; padding:11px 14px; font-weight:600; outline:none; }
+.cmt-form input:focus{ border-color:var(--carrot); }
 </style>
+
+<!-- ═══════════════ 게시글 보기 ═══════════════ -->
+<div class="modal hidden" id="postViewModal">
+  <div class="backdrop" onclick="closePostView()"></div>
+  <div class="panel"><div class="panel-pad">
+    <button class="close-x" onclick="closePostView()">✕</button>
+    <div class="meta" id="pvMeta" style="margin-bottom:8px"></div>
+    <h2 id="pvTitle" style="margin-bottom:4px"></h2>
+    <div class="seller-line" id="pvAuthor" style="margin-bottom:4px"></div>
+    <div id="pvProduct"></div>
+    <div class="pv-content" id="pvContent"></div>
+    <div id="pvImages"></div>
+    <div id="pvActions" class="d-actions" style="margin:6px 0 14px"></div>
+    <h2 style="font-size:14px;border-top:1.5px dashed var(--line);padding-top:14px">
+      💬 댓글 <span id="pvCmtCount" style="color:var(--carrot)"></span></h2>
+    <div id="pvComments"></div>
+    <div class="cmt-form" id="pvCmtForm">
+      <input type="text" id="cmtInput" maxlength="300" placeholder="따뜻한 댓글을 남겨주세요"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();submitComment();}" />
+      <button class="btn btn-primary" onclick="submitComment()">등록</button>
+    </div>
+  </div></div>
+</div>
+
+<!-- ═══════════════ 글쓰기 ═══════════════ -->
+<div class="modal hidden" id="postWriteModal">
+  <div class="backdrop" onclick="closeModal('postWriteModal')"></div>
+  <div class="panel"><div class="panel-pad">
+    <button class="close-x" onclick="closeModal('postWriteModal')">✕</button>
+    <div class="panel-eyebrow">bacheca</div>
+    <h2 id="bpTitleHead" style="margin-bottom:18px">글쓰기</h2>
+    <form onsubmit="submitBoardPost(event)">
+      <div class="field" id="bpBoardField"><label>게시판</label>
+        <select id="bpBoard" onchange="updateBpNotifyRow()"></select></div>
+      <div id="bpProductInfo"></div>
+      <div class="field"><label>제목</label>
+        <input type="text" id="bpTitle" required maxlength="80" placeholder="제목을 입력해주세요" /></div>
+      <div class="field"><label>내용</label>
+        <textarea id="bpContent" style="min-height:140px" placeholder="내용을 적어주세요."></textarea></div>
+      <div class="field"><label>사진 (최대 5장)</label>
+        <div class="img-uploader" id="bpImgUploader"></div>
+        <input type="file" id="bpImgInput" accept="image/*" multiple class="hidden" />
+      </div>
+      <label class="check-row hidden" id="bpNotifyRow" style="margin-bottom:12px">
+        <span>📧 이메일로도 발송하기<br/>
+          <small style="font-weight:600;color:var(--muted)">수신 동의한 모든 성도에게 발송돼요</small></span>
+        <input type="checkbox" id="bpNotify" />
+      </label>
+      <div class="form-error" id="bpError"></div>
+      <button class="btn btn-primary btn-block" type="submit" id="bpSubmitBtn">등록하기</button>
+    </form>
+  </div></div>
+</div>
 
 <!-- ═══════════════ 비밀번호 변경 ═══════════════ -->
 <div class="modal hidden" id="pwChangeModal">
@@ -799,7 +921,7 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
     <div class="panel-eyebrow">arrivederci</div>
     <h2 style="margin-bottom:10px">회원 탈퇴</h2>
     <p style="font-size:13px;color:var(--muted);font-weight:600;line-height:1.7;margin-bottom:14px">
-      탈퇴하면 계정과 이메일, 올린 물품과 사진, 찜·알림 설정이
+      탈퇴하면 계정과 이메일, 올린 물품과 사진, 게시글과 댓글, 찜·알림 설정이
       <b style="color:var(--danger)">모두 삭제되며 되돌릴 수 없어요.</b><br/>
       판매완료된 나눔 기록은 이름 없이(익명) 모금 내역에만 남습니다.</p>
     <div class="field"><label>계속하려면 아래에 <b>탈퇴</b>라고 입력해주세요</label>
@@ -848,6 +970,21 @@ let dropdownOpen = false;
 let myFavs = new Set();      // 내가 찜한 product_id
 let sortMode = "new";        // new | priceAsc | priceDesc
 let reportTarget = null;
+let boardView = "market";     // market | board
+let posts = [];
+let boardFilter = "all";      // all | notice | free | review
+let currentPostId = null;
+let editingPostId = null;
+let bpImages = [];            // 글쓰기 첨부 사진
+let bpBoardLock = null;       // 나눔후기 모드에서 게시판 고정
+let bpProductId = null;
+let siteSettings = {};
+let notifySetupMode = false;  // 가입 직후 필수 알림 설정 모드
+const BOARD_META = {
+  notice: { label: "📢 공지",     name: "공지" },
+  free:   { label: "💬 자유게시판", name: "자유게시판" },
+  review: { label: "🧡 나눔 후기",  name: "나눔 후기" },
+};
 
 const PLACEHOLDER =
   "data:image/svg+xml," + encodeQuoted(
@@ -884,6 +1021,7 @@ function closeModal(id){
 }
 function goHome(){
   history.replaceState({}, "", location.pathname);
+  switchView("market");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -911,6 +1049,7 @@ async function init(){
         if (s){ await loadProfile(); await loadFavs(); }
         renderHeader();
         if (products.length) renderGrid();
+        if (s && profile && profile.notify_setup_done === false) openNotify(true);
       }
       if (event === "SIGNED_OUT"){
         profile = null; myFavs = new Set();
@@ -924,11 +1063,17 @@ async function init(){
   if (session) await loadProfile();
   renderHeader();
 
-  await Promise.all([loadCategories(), loadProducts()]);
+  await Promise.all([loadCategories(), loadProducts(), loadSettings(), loadPosts()]);
 
-  // 딥링크(?id=...) 자동 열기
-  const sharedId = new URLSearchParams(location.search).get("id");
+  // 딥링크(?id=... 물품 / ?post=... 게시글) 자동 열기
+  const qs = new URLSearchParams(location.search);
+  const sharedId = qs.get("id");
   if (sharedId && products.some(p => p.id === sharedId)) openDetail(sharedId);
+  const sharedPost = qs.get("post");
+  if (sharedPost && posts.some(p => p.id === sharedPost)){
+    switchView("board");
+    openPostView(sharedPost);
+  }
 
   // 검색 / 새로고침 / 스크롤탑
   $("searchInput").addEventListener("input", e => { searchTerm = e.target.value; renderGrid(); });
@@ -940,6 +1085,7 @@ async function init(){
       toggleDropdown(false);
   });
   $("imgInput").addEventListener("change", e => addImageFiles(e.target.files));
+  $("bpImgInput").addEventListener("change", e => addBpFiles(e.target.files));
 }
 
 async function refresh(){
@@ -953,7 +1099,7 @@ async function refresh(){
 /* ─────────────────────────────────────────── data load ── */
 async function loadProfile(){
   const { data, error } = await db.from("profiles")
-    .select("id, nickname, is_admin").eq("id", session.user.id).maybeSingle();
+    .select("id, nickname, is_admin, notice_email, notify_setup_done").eq("id", session.user.id).maybeSingle();
   if (!error) profile = data;
 }
 
@@ -1024,6 +1170,376 @@ function toggleDropdown(force){
     <button onclick="toggleDropdown(false); openDeleteAccount()"
       style="color:var(--muted);font-size:11.5px">회원 탈퇴</button>`;
   document.querySelector(".site-header").appendChild(d);
+}
+
+/* ─────────────────────────────── 사이트 문구 ── */
+async function loadSettings(){
+  const { data } = await db.from("site_settings").select("key, value");
+  siteSettings = Object.fromEntries((data ?? []).map(r => [r.key, r.value]));
+  applySettings();
+}
+
+function applySettings(){
+  if (siteSettings.banner_eyebrow) $("bannerEyebrow").textContent = siteSettings.banner_eyebrow;
+  if (siteSettings.banner_label)   $("bannerLabel").textContent   = siteSettings.banner_label;
+  if (siteSettings.footer_hand)    $("footerHand").textContent    = siteSettings.footer_hand;
+  if (siteSettings.footer_text)    $("footerText").textContent    = siteSettings.footer_text;
+}
+
+async function saveSettings(){
+  const rows = [
+    { key: "banner_eyebrow", value: $("setEyebrow").value.trim() },
+    { key: "banner_label",   value: $("setLabel").value.trim() },
+    { key: "footer_hand",    value: $("setFHand").value.trim() },
+    { key: "footer_text",    value: $("setFText").value.trim() },
+  ];
+  const { error } = await db.from("site_settings").upsert(rows);
+  if (error){ toast("문구를 저장하지 못했어요", "err"); return; }
+  rows.forEach(r => { siteSettings[r.key] = r.value; });
+  applySettings();
+  toast("사이트 문구를 저장했어요 ✍️");
+}
+
+/* ─────────────────────────────── 장터/게시판 전환 ── */
+function switchView(v){
+  boardView = v;
+  $("vtMarket").classList.toggle("on", v === "market");
+  $("vtBoard").classList.toggle("on", v === "board");
+  $("market-top").classList.toggle("hidden", v !== "market");
+  document.querySelector(".ledger-wrap").classList.toggle("hidden", v !== "market");
+  $("board-top").classList.toggle("hidden", v !== "board");
+  if (v === "board") renderBoard();
+}
+
+/* ─────────────────────────────── 게시판 ── */
+function within7d(t){
+  return !!t && (Date.now() - new Date(t).getTime()) < 7 * 24 * 3600 * 1000;
+}
+function hasReview(productId){
+  return posts.some(x => x.board === "review" && x.product_id === productId);
+}
+function cmtCount(p){ return p.comments?.[0]?.count ?? 0; }
+function fmtDate(t){
+  return new Date(t).toLocaleDateString("ko-KR", { month: "long", day: "numeric" });
+}
+
+async function loadPosts(){
+  const { data, error } = await db.from("posts")
+    .select(`id, board, title, content, images, author_id, product_id, created_at, updated_at,
+             author:profiles!posts_author_id_fkey(id, nickname),
+             product:products(id, name),
+             comments(count)`)
+    .order("created_at", { ascending: false });
+  if (error){ console.error(error); return; }
+  posts = data ?? [];
+  renderNoticeStrip();
+  if (boardView === "board") renderBoard();
+}
+
+function renderNoticeStrip(){
+  const strip = $("noticeStrip");
+  const latest = posts.find(p => p.board === "notice");
+  if (!latest){ strip.classList.add("hidden"); return; }
+  strip.classList.remove("hidden");
+  strip.innerHTML = `📢 <b>${esc(latest.title)}</b><span class="go">자세히 ›</span>`;
+  strip.onclick = () => { switchView("board"); openPostView(latest.id); };
+}
+
+function renderBoard(){
+  const chip = (key, label) =>
+    `<button class="chip ${boardFilter === key ? "active" : ""}"
+       onclick="applyBoardFilter('${key}')">${label}</button>`;
+  $("boardChips").innerHTML =
+    chip("all", "전체") +
+    chip("notice", BOARD_META.notice.label) +
+    chip("free", BOARD_META.free.label) +
+    chip("review", BOARD_META.review.label);
+  renderPostList();
+}
+
+function applyBoardFilter(k){ boardFilter = k; renderBoard(); }
+
+function renderPostList(){
+  const list = boardFilter === "all" ? posts : posts.filter(p => p.board === boardFilter);
+  const el = $("postList");
+  if (list.length === 0){
+    el.innerHTML = `<div class="empty"><img src="${PLACEHOLDER}" alt=""
+        style="width:76px;border-radius:22px;margin-bottom:12px" />
+      <br/>아직 글이 없어요.<br/>첫 이야기를 남겨보시겠어요?</div>`;
+    return;
+  }
+  el.innerHTML = list.map(p => `
+    <div class="post-row ${p.board === "notice" ? "notice" : ""}" onclick="openPostView('${p.id}')">
+      <div class="pr-top">
+        <span class="pr-board">${BOARD_META[p.board]?.label ?? p.board}</span>
+        <span class="pr-title">${esc(p.title)}</span>
+        ${p.images && p.images.length ? `<span style="flex:none;font-size:12px">📷</span>` : ""}
+        ${cmtCount(p) > 0 ? `<span class="pr-cmt">💬 ${cmtCount(p)}</span>` : ""}
+      </div>
+      <div class="pr-sub">${p.author ? esc(p.author.nickname) : "탈퇴한 성도"} ·
+        ${fmtDate(p.created_at)}${p.updated_at ? " (수정됨)" : ""}</div>
+    </div>`).join("");
+}
+
+/* ── 게시글 보기 ── */
+async function openPostView(id){
+  const p = posts.find(x => x.id === id);
+  if (!p) return;
+  currentPostId = id;
+
+  $("pvMeta").innerHTML = `<span class="tag cat">${BOARD_META[p.board]?.label ?? p.board}</span>`;
+  $("pvTitle").textContent = p.title;
+  $("pvAuthor").innerHTML = `<b>${p.author ? esc(p.author.nickname) : "탈퇴한 성도"}</b> ·
+    ${fmtDate(p.created_at)}${p.updated_at ? " · 수정됨" : ""}`;
+
+  $("pvProduct").innerHTML = (p.board === "review" && p.product)
+    ? `<span class="pv-product" onclick="closePostView(); openDetail('${p.product.id}')">
+        🥕 ${esc(p.product.name)} 보러 가기 ›</span>`
+    : "";
+
+  $("pvContent").textContent = p.content || "";
+  $("pvImages").innerHTML = (p.images ?? []).map(u =>
+    `<img class="pv-img" src="${esc(u)}" alt="" loading="lazy" />`).join("");
+
+  const mine = profile && p.author_id === profile.id;
+  const canManage = mine || profile?.is_admin;
+  $("pvActions").innerHTML = canManage
+    ? `<button class="btn btn-soft" onclick="openPostWrite('${p.id}')">✏️ 수정</button>
+       <button class="btn btn-danger" onclick="deletePost('${p.id}')">삭제</button>`
+    : "";
+
+  $("pvCmtForm").classList.toggle("hidden", !session);
+  $("pvComments").innerHTML = `<div class="empty" style="padding:14px 0">불러오는 중…</div>`;
+  openModal("postViewModal");
+  history.replaceState({}, "", `${location.pathname}?post=${p.id}`);
+  loadComments(id);
+}
+
+function closePostView(){
+  closeModal("postViewModal");
+  currentPostId = null;
+  history.replaceState({}, "", location.pathname);
+}
+
+/* ── 댓글 ── */
+async function loadComments(postId){
+  const { data, error } = await db.from("comments")
+    .select(`id, content, created_at, author_id,
+             author:profiles!comments_author_id_fkey(nickname)`)
+    .eq("post_id", postId).order("created_at");
+  if (error){ $("pvComments").innerHTML = ""; return; }
+  const list = data ?? [];
+  $("pvCmtCount").textContent = list.length || "";
+  if (list.length === 0){
+    $("pvComments").innerHTML = `<div class="empty" style="padding:14px 0;font-size:12.5px">
+      아직 댓글이 없어요. 첫 댓글을 남겨보세요!</div>`;
+    return;
+  }
+  $("pvComments").innerHTML = list.map(c => `
+    <div class="cmt">
+      <div class="c-main">
+        <span class="c-author">${c.author ? esc(c.author.nickname) : "탈퇴한 성도"}</span>
+        <span class="c-date">${new Date(c.created_at).toLocaleString("ko-KR",
+          { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+        <div class="c-text">${esc(c.content)}</div>
+      </div>
+      ${(profile && (c.author_id === profile.id || profile.is_admin))
+        ? `<button class="mini-btn danger" style="flex:none" onclick="deleteComment(${c.id})">삭제</button>` : ""}
+    </div>`).join("");
+}
+
+async function submitComment(){
+  if (!session){ openAuth("login"); return; }
+  const inp = $("cmtInput");
+  const text = inp.value.trim();
+  if (!text || !currentPostId) return;
+  inp.value = "";
+  const { error } = await db.from("comments").insert({
+    post_id: currentPostId, author_id: session.user.id, content: text });
+  if (error){ toast("댓글을 남기지 못했어요", "err"); inp.value = text; return; }
+  loadComments(currentPostId);
+  const p = posts.find(x => x.id === currentPostId);
+  if (p && p.comments?.[0]) p.comments[0].count = cmtCount(p) + 1;
+  else if (p) p.comments = [{ count: 1 }];
+  if (boardView === "board") renderPostList();
+}
+
+async function deleteComment(id){
+  if (!confirm("이 댓글을 삭제할까요?")) return;
+  await db.from("comments").delete().eq("id", id);
+  loadComments(currentPostId);
+  const p = posts.find(x => x.id === currentPostId);
+  if (p && p.comments?.[0] && p.comments[0].count > 0) p.comments[0].count--;
+  if (boardView === "board") renderPostList();
+}
+
+/* ── 글쓰기 ── */
+function bpBoardOptions(){
+  let opts = `<option value="free">${BOARD_META.free.label}</option>`;
+  if (profile?.is_admin) opts = `<option value="notice">${BOARD_META.notice.label}</option>` + opts;
+  return opts;
+}
+
+function openPostWrite(editId){
+  if (!session){ openAuth("login"); return; }
+  editingPostId = editId ?? null;
+  bpBoardLock = null; bpProductId = null; bpImages = [];
+  $("bpError").textContent = "";
+  const sel = $("bpBoard");
+
+  if (editId){
+    const p = posts.find(x => x.id === editId);
+    if (!p) return;
+    closeModal("postViewModal");
+    $("bpTitleHead").textContent = "글 수정하기";
+    sel.innerHTML = `<option value="${p.board}">${BOARD_META[p.board]?.label ?? p.board}</option>`;
+    sel.disabled = true;
+    bpBoardLock = p.board;
+    bpProductId = p.product_id;
+    $("bpTitle").value = p.title;
+    $("bpContent").value = p.content;
+    bpImages = (p.images ?? []).map(u => ({ kind: "url", url: u }));
+    $("bpSubmitBtn").textContent = "수정하기";
+    $("bpProductInfo").innerHTML = "";
+  } else {
+    $("bpTitleHead").textContent = "글쓰기";
+    sel.innerHTML = bpBoardOptions();
+    sel.disabled = false;
+    sel.value = "free";
+    $("bpTitle").value = ""; $("bpContent").value = "";
+    $("bpSubmitBtn").textContent = "등록하기";
+    $("bpProductInfo").innerHTML = "";
+  }
+  updateBpNotifyRow();
+  renderBpUploader();
+  openModal("postWriteModal");
+}
+
+function openReviewWrite(productId){
+  if (!session){ openAuth("login"); return; }
+  const prod = products.find(x => x.id === productId);
+  editingPostId = null;
+  bpBoardLock = "review"; bpProductId = productId; bpImages = [];
+  $("bpError").textContent = "";
+  $("bpTitleHead").textContent = "나눔 후기 남기기";
+  const sel = $("bpBoard");
+  sel.innerHTML = `<option value="review">${BOARD_META.review.label}</option>`;
+  sel.disabled = true;
+  $("bpProductInfo").innerHTML = prod
+    ? `<span class="pv-product" style="margin:0 0 14px">🥕 ${esc(prod.name)}</span>`
+    : "";
+  $("bpTitle").value = prod ? `${prod.name} 나눔 후기` : "나눔 후기";
+  $("bpContent").value = "";
+  $("bpContent").placeholder = "나눔 받은 소감을 자유롭게 적어주세요. 판매자님께 큰 힘이 돼요 🧡";
+  $("bpSubmitBtn").textContent = "후기 남기기";
+  updateBpNotifyRow();
+  renderBpUploader();
+  openModal("postWriteModal");
+}
+
+function updateBpNotifyRow(){
+  const board = bpBoardLock ?? $("bpBoard").value;
+  const show = board === "notice" && !editingPostId;
+  $("bpNotifyRow").classList.toggle("hidden", !show);
+  if (!show) $("bpNotify").checked = false;
+}
+
+/* ── 글쓰기 사진 업로더 ── */
+function addBpFiles(files){
+  for (const f of files){
+    if (bpImages.length >= 5) break;
+    if (!f.type.startsWith("image/")) continue;
+    bpImages.push({ kind: "file", file: f, preview: URL.createObjectURL(f) });
+  }
+  $("bpImgInput").value = "";
+  renderBpUploader();
+}
+function removeBpImage(i){ bpImages.splice(i, 1); renderBpUploader(); }
+function renderBpUploader(){
+  const el = $("bpImgUploader");
+  el.innerHTML = bpImages.map((im, i) => `
+    <div class="slot">
+      <img src="${esc(im.kind === "url" ? im.url : im.preview)}" alt="" />
+      <button type="button" class="rm" onclick="removeBpImage(${i})">✕</button>
+    </div>`).join("") +
+    (bpImages.length < 5
+      ? `<button type="button" class="adder" onclick="document.getElementById('bpImgInput').click()">＋</button>`
+      : "");
+}
+
+async function submitBoardPost(e){
+  e.preventDefault();
+  if (!session || !profile) return;
+  const board = bpBoardLock ?? $("bpBoard").value;
+  const title = $("bpTitle").value.trim();
+  const content = $("bpContent").value.trim();
+  if (!title){ $("bpError").textContent = "제목을 입력해주세요."; return; }
+  const notify = board === "notice" && !editingPostId && $("bpNotify").checked;
+  if (notify && !confirm("이 공지를 수신 동의한 모든 성도에게 이메일로 발송합니다. 계속할까요?")) return;
+
+  const btn = $("bpSubmitBtn");
+  btn.disabled = true; btn.textContent = "올리는 중…";
+  $("bpError").textContent = "";
+  try {
+    const urls = [];
+    for (let i = 0; i < bpImages.length; i++){
+      const im = bpImages[i];
+      if (im.kind === "url"){ urls.push(im.url); continue; }
+      const blob = await compressImage(im.file);
+      const path = `${session.user.id}/post-${Date.now()}-${i}.jpg`;
+      const { error: upErr } = await db.storage.from("product-images")
+        .upload(path, blob, { contentType: "image/jpeg" });
+      if (upErr) throw upErr;
+      urls.push(db.storage.from("product-images").getPublicUrl(path).data.publicUrl);
+    }
+
+    let error;
+    if (editingPostId){
+      ({ error } = await db.from("posts").update({
+        title, content, images: urls, updated_at: new Date().toISOString(),
+      }).eq("id", editingPostId));
+    } else {
+      ({ error } = await db.from("posts").insert({
+        board, title, content, images: urls,
+        author_id: session.user.id, product_id: bpProductId, notify,
+      }));
+    }
+    if (error) throw error;
+
+    closeModal("postWriteModal");
+    await loadPosts();
+    if (boardView !== "board") switchView("board");
+    toast(editingPostId ? "글을 수정했어요" :
+      notify ? "공지를 올리고 이메일을 발송했어요 📧" :
+      board === "review" ? "따뜻한 후기 감사합니다 🧡" : "글을 올렸어요");
+    if (currentPostId && editingPostId === currentPostId) openPostView(currentPostId);
+    editingPostId = null;
+  } catch (err){
+    console.error(err);
+    $("bpError").textContent =
+      err?.code === "23505" ? "이 물품의 후기는 이미 작성하셨어요." :
+      err?.code === "42501" ? "작성 권한이 없거나 후기 작성 기간(판매완료 후 7일)이 지났어요." :
+      "올리지 못했어요. 잠시 후 다시 시도해주세요.";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = editingPostId ? "수정하기" : "등록하기";
+  }
+}
+
+async function deletePost(id){
+  if (!confirm("이 글을 삭제할까요? 되돌릴 수 없어요.")) return;
+  const p = posts.find(x => x.id === id);
+  const { error } = await db.from("posts").delete().eq("id", id);
+  if (error){ toast("삭제하지 못했어요", "err"); return; }
+  try {
+    const paths = (p?.images ?? [])
+      .map(u => { const m = u.split("/product-images/")[1]; return m ? decodeURIComponent(m) : null; })
+      .filter(Boolean);
+    if (paths.length) await db.storage.from("product-images").remove(paths);
+  } catch(e){}
+  toast("글을 삭제했어요");
+  closePostView();
+  loadPosts();
 }
 
 /* ─────────────────────────────── 찜하기 ── */
@@ -1450,6 +1966,14 @@ function renderDetailActions(p){
     }
   }
 
+  // ── 나눔 후기 (구매자 · 판매완료 후 7일)
+  if (profile && p.reserved_by === profile.id && p.status === "판매완료" && within7d(p.sold_at)){
+    html += hasReview(p.id)
+      ? `<div class="d-note">🧡 이 물품의 나눔 후기를 남겨주셨어요. 감사합니다!</div>`
+      : `<button class="btn btn-primary btn-block btn-lg"
+           onclick="closeDetail(); openReviewWrite('${p.id}')">🧡 나눔 후기 남기기</button>`;
+  }
+
   // ── 찜
   if (!isMine){
     html += `<button class="btn btn-block btn-soft" style="margin-top:8px" onclick="toggleFav('${p.id}')">
@@ -1682,7 +2206,8 @@ function renderMyList(){
   const list = myTab === "mine"
     ? products.filter(p => p.seller_id === profile.id)
     : myTab === "reserved"
-    ? products.filter(p => p.reserved_by === profile.id && p.status === "예약중")
+    ? products.filter(p => p.reserved_by === profile.id &&
+        (p.status === "예약중" || (p.status === "판매완료" && within7d(p.sold_at))))
     : products.filter(p => myFavs.has(p.id));
   const el = $("myList");
   if (!el || $("myModal").classList.contains("hidden")) return;
@@ -1708,7 +2233,11 @@ function renderMyList(){
           ? `<button class="mini-btn" onclick="openPost('${p.id}')">수정</button>
              <button class="mini-btn danger" onclick="deleteProduct('${p.id}')">삭제</button>`
           : myTab === "reserved"
-          ? `<button class="mini-btn danger" onclick="cancelReserve('${p.id}')">예약 취소</button>`
+          ? (p.status === "예약중"
+              ? `<button class="mini-btn danger" onclick="cancelReserve('${p.id}')">예약 취소</button>`
+              : hasReview(p.id)
+              ? `<span class="mini-btn" style="cursor:default;opacity:.55">후기 완료 🧡</span>`
+              : `<button class="mini-btn" onclick="closeModal('myModal'); openReviewWrite('${p.id}')">🧡 후기 쓰기</button>`)
           : `<button class="mini-btn" onclick="toggleFav('${p.id}')">찜 해제</button>`}
       </div>
     </div>`).join("");
@@ -1717,16 +2246,37 @@ function renderMyList(){
 /* ─────────────────────────────────────── 알림 설정 ── */
 let mySubs = [];   // [{id, category_id}]
 
-async function openNotify(){
+async function openNotify(onboarding = false){
   if (!session){ openAuth("login"); return; }
-  $("notifyEmailLine").textContent = `알림은 ${session.user.email} 주소로 발송돼요.`;
+  notifySetupMode = !!onboarding;
+
+  const modal = $("notifyModal");
+  modal.querySelector(".close-x").classList.toggle("hidden", notifySetupMode);
+  modal.querySelector(".backdrop").style.pointerEvents = notifySetupMode ? "none" : "";
+  $("notifyTitle").textContent = notifySetupMode
+    ? "환영해요! 알림부터 골라주세요" : "이메일 알림 설정";
+  $("notifyEmailLine").textContent = notifySetupMode
+    ? `가입을 환영해요 🥕 공지와 새 물품 소식을 ${session.user.email} 주소로 보내드릴 수 있어요. 원하는 알림을 고르고 저장해주세요. (나중에 언제든 바꿀 수 있어요)`
+    : `알림은 ${session.user.email} 주소로 발송돼요.`;
+  $("subSaveBtn").textContent = notifySetupMode ? "저장하고 시작하기" : "저장하기";
+
   const { data, error } = await db.from("subscriptions")
     .select("id, category_id").eq("user_id", session.user.id);
   if (error){ toast("설정을 불러오지 못했어요", "err"); return; }
   mySubs = data ?? [];
   $("subAll").checked = mySubs.some(s => s.category_id === null);
+  // 온보딩에서는 공지 이메일을 추천값(켜짐)으로 보여주고, 저장 시 선택이 반영돼요
+  $("noticeMailChk").checked = notifySetupMode ? true : (profile?.notice_email !== false);
   renderNotifyRows();
   openModal("notifyModal");
+}
+
+function closeNotifyModal(){
+  if (notifySetupMode){
+    toast("알림 설정을 저장하고 시작해주세요 🙏", "err");
+    return;
+  }
+  closeModal("notifyModal");
 }
 
 function renderNotifyRows(){
@@ -1761,8 +2311,25 @@ async function saveSubs(){
     const { error } = await db.from("subscriptions").delete().in("id", toDel);
     if (error){ toast("저장에 실패했어요", "err"); return; }
   }
+
+  // 공지 이메일 수신 여부 + (온보딩이라면) 설정 완료 표시
+  const noticeOn = $("noticeMailChk").checked;
+  const patch = { notice_email: noticeOn };
+  if (notifySetupMode) patch.notify_setup_done = true;
+  const { error: pErr } = await db.from("profiles")
+    .update(patch).eq("id", session.user.id);
+  if (pErr){ toast("저장에 실패했어요", "err"); return; }
+  if (profile){
+    profile.notice_email = noticeOn;
+    if (notifySetupMode) profile.notify_setup_done = true;
+  }
+
+  const wasSetup = notifySetupMode;
+  notifySetupMode = false;
   closeModal("notifyModal");
-  toast(want.size ? "알림 설정을 저장했어요" : "알림을 모두 해제했어요");
+  toast(wasSetup
+    ? "설정 완료! 한마음 CAROTE에 오신 걸 환영해요 🥕"
+    : (want.size || noticeOn ? "알림 설정을 저장했어요" : "알림을 모두 해제했어요"));
 }
 
 /* ─────────────────────────────────────────── 관리자 ── */
@@ -1776,6 +2343,10 @@ async function openAdmin(){
     <div class="stat-box"><div class="n">${products.length}</div><div class="l">전체 물품</div></div>
     <div class="stat-box"><div class="n">${sold.length}</div><div class="l">나눔 완료</div></div>
     <div class="stat-box"><div class="n">${count ?? "-"}</div><div class="l">가입 성도</div></div>`;
+  $("setEyebrow").value = siteSettings.banner_eyebrow ?? "";
+  $("setLabel").value   = siteSettings.banner_label ?? "";
+  $("setFHand").value   = siteSettings.footer_hand ?? "";
+  $("setFText").value   = siteSettings.footer_text ?? "";
   renderCatAdmin();
   loadReports();
   openModal("adminModal");
