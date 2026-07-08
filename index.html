@@ -571,6 +571,7 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
       <button class="admin-back" onclick="exitAdmin()">← 장터로</button>
       <nav class="admin-nav" id="adminNav">
         <button data-sec="dash" class="on" onclick="adminSection('dash')">📊 대시보드</button>
+        <button data-sec="sales" onclick="adminSection('sales')">🧾 판매내역</button>
         <button data-sec="reports" onclick="adminSection('reports')">🚨 신고</button>
         <button data-sec="members" onclick="adminSection('members')">👥 성도 관리</button>
         <button data-sec="settings" onclick="adminSection('settings')">✍️ 사이트 문구</button>
@@ -585,6 +586,28 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
         <h2 class="admin-h">📊 대시보드</h2>
         <div id="adminStats" class="admin-stats"></div>
         <p class="admin-note">물품의 수정·삭제·HOT 지정은 각 물품 상세 화면에서 바로 할 수 있어요.</p>
+      </section>
+
+      <!-- 🧾 판매내역 -->
+      <section class="admin-sec hidden" id="asec-sales">
+        <h2 class="admin-h">🧾 판매내역</h2>
+        <div class="admin-stats" id="salesSummary"></div>
+        <div style="margin:14px 0 16px">
+          <button class="btn btn-soft" onclick="exportSalesCSV()">📥 CSV 내보내기</button>
+        </div>
+        <details class="sales-add" id="salesAddBox">
+          <summary>＋ 과거 판매 기록 추가</summary>
+          <div class="sales-add-body">
+            <input type="text" id="lgName" class="admin-inp" maxlength="80" placeholder="물품명 (필수)" />
+            <div style="display:flex;gap:8px">
+              <input type="number" id="lgPrice" class="admin-inp" min="0" step="1" placeholder="기부금 € (필수)" style="flex:1;min-width:0" />
+              <input type="date" id="lgDate" class="admin-inp" style="flex:1;min-width:0" />
+            </div>
+            <div class="form-error" id="lgError"></div>
+            <button class="btn btn-primary btn-block" id="lgAddBtn" onclick="addLegacySale()">기록 추가하기</button>
+          </div>
+        </details>
+        <div class="rowlist" id="salesList" style="margin-top:16px"></div>
       </section>
 
       <!-- 🚨 신고 -->
@@ -825,6 +848,12 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
 .admin-note{ font-size:12.5px; color:var(--muted); font-weight:600; margin-top:14px; }
 .admin-stats{ display:flex; gap:8px; flex-wrap:wrap; }
 .admin-stats .stat-box{ flex:0 1 auto; min-width:120px; }
+.sales-add{ border:1.5px solid var(--line); border-radius:14px; background:var(--card); max-width:520px; }
+.sales-add summary{ padding:12px 16px; font-weight:800; font-size:13.5px; color:var(--carrot-deep);
+  cursor:pointer; list-style:none; }
+.sales-add summary::-webkit-details-marker{ display:none; }
+.sales-add[open] summary{ border-bottom:1.5px solid var(--line); }
+.sales-add-body{ padding:14px 16px; display:flex; flex-direction:column; gap:8px; }
 @media (max-width:760px){
   .admin-shell{ flex-direction:column; gap:16px; }
   .admin-side{ flex:none; width:100%; position:static; top:auto; }
@@ -1325,7 +1354,7 @@ async function loadCategories(){
 
 async function loadProducts(){
   const { data, error } = await db.from("products")
-    .select(`id, name, price, status, description, images, is_hot, created_at, sold_at,
+    .select(`id, name, price, status, description, images, is_hot, created_at, sold_at, legacy,
              category_id, seller_id, reserved_by,
              category:categories(id, name, emoji),
              seller:profiles!products_seller_id_fkey(id, nickname),
@@ -2446,7 +2475,8 @@ function applyFilter(key){
 }
 
 function visibleProducts(){
-  let list = [...products];
+  // legacy(과거 바자회 기록)는 그리드에 노출하지 않음 — 통계(renderStats)에는 포함됨
+  let list = products.filter(p => !p.legacy);
   if (currentFilter === "free") list = list.filter(p => Number(p.price) === 0);
   else if (currentFilter !== "all") list = list.filter(p => String(p.category_id) === String(currentFilter));
   if (searchTerm.trim()){
@@ -2489,7 +2519,7 @@ function renderGrid(){
         <div class="cat">${catLabel}</div>
         <div class="name">${esc(p.name)}</div>
         <div class="price ${Number(p.price) === 0 ? "free" : ""}">${fmtPrice(p.price)}</div>
-        <div class="seller">${p.seller ? esc(p.seller.nickname) + " 님의 나눔" : "탈퇴한 성도의 나눔"}</div>
+        <div class="seller">${p.legacy ? "지난 바자회 나눔" : (p.seller ? esc(p.seller.nickname) + " 님의 나눔" : "탈퇴한 성도의 나눔")}</div>
       </div>
     </article>`;
   }).join("");
@@ -2508,7 +2538,9 @@ function openDetail(id){
   const priceEl = $("dPrice");
   priceEl.textContent = fmtPrice(p.price, true);
   priceEl.classList.toggle("free", Number(p.price) === 0);
-  $("dSeller").innerHTML = `<b>${esc(p.seller?.nickname ?? "탈퇴한 성도")}</b> 님의 나눔 ·
+  $("dSeller").innerHTML = p.legacy
+    ? `<b>지난 바자회 나눔</b> · ${new Date(p.sold_at ?? p.created_at).toLocaleDateString("ko-KR", { year: "numeric", month: "long" })} 기록`
+    : `<b>${esc(p.seller?.nickname ?? "탈퇴한 성도")}</b> 님의 나눔 ·
     ${new Date(p.created_at).toLocaleDateString("ko-KR", { month: "long", day: "numeric" })} 등록`;
 
   const catLabel = p.category ? `${esc(p.category.emoji)} ${esc(p.category.name)}` : "🎁 미분류";
@@ -2991,10 +3023,11 @@ function exitAdmin(){
 function adminSection(sec){
   document.querySelectorAll("#adminNav button").forEach(b =>
     b.classList.toggle("on", b.dataset.sec === sec));
-  ["dash", "reports", "members", "settings", "cats"].forEach(s =>
+  ["dash", "sales", "reports", "members", "settings", "cats"].forEach(s =>
     $("asec-" + s).classList.toggle("hidden", s !== sec));
   $("adminContent").scrollTop = 0;
   if (sec === "dash") loadAdminStats();
+  else if (sec === "sales") loadSales();
   else if (sec === "reports"){ loadReports(); loadReportedChats(); }
   else if (sec === "members"){ resetBanList(); loadMembers(); }
   else if (sec === "settings") fillSettingsForm();
@@ -3022,6 +3055,119 @@ function fillSettingsForm(){
 function resetBanList(){
   $("banListWrap").classList.add("hidden");
   $("banListBtn").textContent = "🚫 재가입 차단 목록 보기";
+}
+
+/* ── 관리자: 판매내역 ── */
+function soldProducts(){
+  return products
+    .filter(p => p.status === "판매완료")
+    .sort((a, b) => new Date(b.sold_at ?? b.created_at) - new Date(a.sold_at ?? a.created_at));
+}
+
+function saleSeller(p){
+  return p.legacy ? "지난 바자회 나눔" : (p.seller?.nickname ? p.seller.nickname + " 님" : "탈퇴한 성도");
+}
+
+function loadSales(){
+  const list = soldProducts();
+  const total = list.reduce((s, p) => s + (Number(p.price) || 0), 0);
+  $("salesSummary").innerHTML =
+    `<div class="stat-box"><div class="n">€${Number.isInteger(total) ? total.toLocaleString() : total.toFixed(2)}</div><div class="l">모인 헌금 합계</div></div>
+     <div class="stat-box"><div class="n">${list.length}</div><div class="l">판매완료 건수</div></div>`;
+  if (!$("lgDate").value) $("lgDate").value = new Date().toISOString().slice(0, 10);
+  const el = $("salesList");
+  if (list.length === 0){
+    el.innerHTML = `<div class="empty" style="padding:16px 0">아직 판매완료된 나눔이 없어요.</div>`;
+    return;
+  }
+  el.innerHTML = list.map(p => {
+    const date = new Date(p.sold_at ?? p.created_at)
+      .toLocaleDateString("ko-KR", { year: "2-digit", month: "numeric", day: "numeric" });
+    return `
+    <div class="rowitem">
+      <div class="rmain" style="cursor:default">
+        <div class="rname">${esc(p.name)} · <span style="color:var(--carrot)">${fmtPrice(p.price)}</span></div>
+        <div class="rsub">${date} · ${esc(saleSeller(p))}${
+          p.legacy ? ` · <span style="color:var(--muted)">과거 기록</span>` : ""}</div>
+      </div>
+      <div class="racts">
+        ${p.legacy
+          ? `<button class="mini-btn danger" onclick="deleteLegacySale('${p.id}')">삭제</button>`
+          : ""}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+async function addLegacySale(){
+  const name = $("lgName").value.trim();
+  const priceRaw = $("lgPrice").value;
+  const price = Number(priceRaw);
+  const dateStr = $("lgDate").value;
+  $("lgError").textContent = "";
+  if (!name){ $("lgError").textContent = "물품명을 입력해주세요."; return; }
+  if (priceRaw === "" || !Number.isFinite(price) || price < 0){
+    $("lgError").textContent = "기부금을 0 이상으로 입력해주세요."; return; }
+  if (!dateStr){ $("lgError").textContent = "판매일을 선택해주세요."; return; }
+  const btn = $("lgAddBtn");
+  btn.disabled = true; btn.textContent = "추가 중…";
+  const { error } = await db.from("products").insert({
+    name, price, status: "판매완료", legacy: true,
+    sold_at: dateStr, seller_id: null, reserved_by: null, category_id: null,
+  });
+  btn.disabled = false; btn.textContent = "기록 추가하기";
+  if (error){
+    $("lgError").textContent = error.code === "42501"
+      ? "권한이 없어요. 관리자만 추가할 수 있어요."
+      : "추가하지 못했어요. 잠시 후 다시 시도해주세요.";
+    return;
+  }
+  $("lgName").value = ""; $("lgPrice").value = "";
+  $("lgDate").value = new Date().toISOString().slice(0, 10);
+  $("salesAddBox").open = false;
+  await loadProducts();   // 모금 통계·그리드 갱신
+  loadSales();
+  toast("과거 판매 기록을 추가했어요 🧾");
+}
+
+async function deleteLegacySale(id){
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  if (!confirm(`'${p.name}' 기록을 삭제할까요?\n모금액 합계에서 제외됩니다.`)) return;
+  const { error } = await db.from("products").delete().eq("id", id);
+  if (error){ toast("삭제하지 못했어요", "err"); return; }
+  await loadProducts();
+  loadSales();
+  toast("기록을 삭제했어요");
+}
+
+function csvCell(v){
+  const s = String(v ?? "");
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function buildSalesCSV(){
+  const header = ["판매일", "물품명", "기부금", "판매자", "구분"];
+  const rows = soldProducts().map(p => {
+    const date = new Date(p.sold_at ?? p.created_at).toLocaleDateString("ko-KR");
+    const seller = p.legacy ? "지난 바자회" : (p.seller?.nickname || "탈퇴한 성도");
+    const kind = p.legacy ? "과거 기록" : "온라인 나눔";
+    return [date, p.name, Number(p.price) || 0, seller, kind];
+  });
+  return [header, ...rows].map(r => r.map(csvCell).join(",")).join("\r\n");
+}
+
+function exportSalesCSV(){
+  if (soldProducts().length === 0){ toast("내보낼 판매내역이 없어요", "err"); return; }
+  // 한글 깨짐 방지용 UTF-8 BOM 포함, 클라이언트에서 생성
+  const blob = new Blob(["﻿" + buildSalesCSV()], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `한마음카로테_판매내역_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  toast("판매내역 CSV를 내려받았어요 📥");
 }
 
 function renderCatAdmin(){
