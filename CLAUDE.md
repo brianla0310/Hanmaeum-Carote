@@ -45,10 +45,16 @@
 
 | 항목 | 값 |
 |---|---|
+| 서비스 도메인 | `https://hanmaeumcarote.com` (Cloudflare 구매, DNS only로 Netlify 연결) |
+| www 처리 | `www.hanmaeumcarote.com` → apex로 301 리다이렉트 (Netlify) |
 | Supabase URL | `https://qvjkbpqoztptemympwxy.supabase.co` |
 | Supabase ref | `qvjkbpqoztptemympwxy` (eu-central-1) |
 | anon publishable key | `sb_publishable_7D5ucUDeHKp6fM0DMfctLw_4VVHs053` (index.html에 삽입됨) |
 | 리전 | eu-central-1 |
+
+> **도메인/이메일**: `SITE_URL` secret·Supabase Auth Site URL 모두 `https://hanmaeumcarote.com`로 갱신됨.
+> Brevo 도메인 인증(SPF/DKIM) 완료, 발신 주소 `noreply@hanmaeumcarote.com`.
+> 프런트의 공유 링크·비밀번호 재설정 redirect는 `location.origin` 기반이라 도메인에 자동 적응(하드코딩 없음).
 
 **관리자 계정 (is_admin=true) 2명**
 - 나서중 — `brianla0310@gmail.com` (id `e542c21b-87bf-497d-b8eb-e938557d7959`)
@@ -166,19 +172,15 @@ git add -A && git commit -m "설명" && git push
 ## 로드맵 / 백로그
 
 ### 진행 예정 (순서)
-1. **관리자 페이지 개편** — 현재 관리자 모달이 스크롤로 길어짐(통계·신고물품·신고채팅·성도·차단·문구·카테고리).
-   → 별도 전체화면 뷰로 분리. 데스크톱은 좌측 사이드바(대시보드/신고/성도/설정/카테고리/판매내역),
-   모바일은 상단 가로 탭으로 접힘. **DB 변경 없이 화면 재배치**.
-2. **도메인 연결** (사용자가 구매 시) — `hanmaeumcarote.com` 후보. 도메인만 구매, 호스팅은 Netlify 유지.
-   Netlify custom domain 연결 → Supabase `SITE_URL`/Site URL 갱신 → **Brevo 도메인 인증(SPF/DKIM)**으로 이메일 스팸 개선.
-3. **판매내역 CSV 내보내기** — 관리자 회계용.
-4. **스프레드시트 판매완료 건 가져오기**(백로그) — 과거 판매완료 건을 CSV/엑셀에서 읽어 products에 익명 판매완료 레코드로 추가, 모금액 합계 반영. 각 건을 익명 처리할지 닉네임 매칭할지 결정 필요.
+1. **스프레드시트 판매완료 건 가져오기**(백로그) — 과거 판매완료 건을 CSV/엑셀에서 읽어 products에 익명 판매완료 레코드로 추가, 모금액 합계 반영. 각 건을 익명 처리할지 닉네임 매칭할지 결정 필요.
+   → DB 기반(`legacy` 컬럼·관리자 insert 정책)은 판매내역 작업에서 이미 마련됨. 파서만 얹으면 됨.
 
 ### 완료된 주요 마일스톤
 - 구글시트/카카오톡 구조 → Supabase 전면 재구축(로그인·물품·예약·관리자·이메일).
 - 1차: 비밀번호 토글/변경, 찜하기, 정렬, 신고, 회원탈퇴, PWA.
 - 2차: 게시판(공지/자유/후기, 댓글, 공지 이메일), 사이트 문구 편집, 성도 관리(강제탈퇴·재가입차단), 가입 후 알림 온보딩.
 - 3차: 1:1 채팅(Realtime, 안읽음 배지, 첫 메시지만 이메일, 신고 시 관리자 열람, 7일 후 자동삭제).
+- 4차: 관리자 전체화면 뷰 개편(좌측 사이드바/모바일 가로 탭), 판매내역 섹션(과거기록 `legacy`·CSV 내보내기), **커스텀 도메인 `hanmaeumcarote.com` 연결**(Cloudflare DNS only→Netlify) + Brevo 도메인 인증(SPF/DKIM).
 
 ### 알려진 한계 (의도적 결정)
 - 가입 시 이메일 인증 OFF → 남의 이메일로 가입 가능(강제탈퇴+차단으로 대응). CAPTCHA 없음.
@@ -188,5 +190,5 @@ git add -A && git commit -m "설명" && git push
 ---
 
 ## 이메일 스팸 주의
-Brevo 발신이 Gmail 개별 인증이라 **스팸함에 들어갈 수 있음**. 사용자 안내 시 스팸함 확인 권고.
-도메인 연결 후 Brevo 도메인 인증(SPF/DKIM)하면 개선됨.
+도메인 연결 + **Brevo 도메인 인증(SPF/DKIM) 완료**로 발신 도메인이 `hanmaeumcarote.com`(`noreply@hanmaeumcarote.com`)이 되어 스팸 도달률이 개선됨.
+다만 초기에는 여전히 스팸함에 들어갈 수 있으니, 필요 시 사용자에게 스팸함 확인·수신 등록을 권고.
