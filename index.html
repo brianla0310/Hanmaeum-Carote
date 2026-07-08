@@ -564,6 +564,81 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
   </div>
 </main>
 
+<!-- ═══════════════ 관리자 (전체화면 뷰) ═══════════════ -->
+<main id="admin-top" class="hidden">
+  <div class="admin-shell">
+    <aside class="admin-side">
+      <button class="admin-back" onclick="exitAdmin()">← 장터로</button>
+      <nav class="admin-nav" id="adminNav">
+        <button data-sec="dash" class="on" onclick="adminSection('dash')">📊 대시보드</button>
+        <button data-sec="reports" onclick="adminSection('reports')">🚨 신고</button>
+        <button data-sec="members" onclick="adminSection('members')">👥 성도 관리</button>
+        <button data-sec="settings" onclick="adminSection('settings')">✍️ 사이트 문구</button>
+        <button data-sec="cats" onclick="adminSection('cats')">🏷️ 카테고리</button>
+      </nav>
+    </aside>
+    <div class="admin-content" id="adminContent">
+
+      <!-- 📊 대시보드 -->
+      <section class="admin-sec" id="asec-dash">
+        <div class="admin-eyebrow">amministrazione</div>
+        <h2 class="admin-h">📊 대시보드</h2>
+        <div id="adminStats" class="admin-stats"></div>
+        <p class="admin-note">물품의 수정·삭제·HOT 지정은 각 물품 상세 화면에서 바로 할 수 있어요.</p>
+      </section>
+
+      <!-- 🚨 신고 -->
+      <section class="admin-sec hidden" id="asec-reports">
+        <h2 class="admin-h">🚨 신고</h2>
+        <h3 class="admin-sub">신고된 물품</h3>
+        <div class="rowlist" id="reportList" style="margin-bottom:24px"></div>
+        <h3 class="admin-sub">신고된 채팅</h3>
+        <div class="rowlist" id="reportedChatList"></div>
+      </section>
+
+      <!-- 👥 성도 관리 -->
+      <section class="admin-sec hidden" id="asec-members">
+        <h2 class="admin-h">👥 성도 관리</h2>
+        <input type="text" id="memberSearch" class="admin-inp" placeholder="닉네임·이메일 검색"
+          oninput="renderMembers()" style="width:100%;margin-bottom:10px" />
+        <div class="rowlist" id="memberList">
+          <div class="empty" style="padding:14px 0">불러오는 중…</div>
+        </div>
+        <button class="btn btn-block" id="banListBtn" style="color:var(--muted);font-size:12px;margin-top:16px"
+          onclick="toggleBanList()">🚫 재가입 차단 목록 보기</button>
+        <div id="banListWrap" class="hidden" style="margin-top:12px">
+          <div class="rowlist" id="banList"></div>
+        </div>
+      </section>
+
+      <!-- ✍️ 사이트 문구 -->
+      <section class="admin-sec hidden" id="asec-settings">
+        <h2 class="admin-h">✍️ 사이트 문구</h2>
+        <div style="display:flex;flex-direction:column;gap:10px;max-width:460px">
+          <input type="text" id="setEyebrow" class="admin-inp" maxlength="60" placeholder="배너 작은 문구" />
+          <input type="text" id="setLabel" class="admin-inp" maxlength="60" placeholder="배너 제목" />
+          <input type="text" id="setFHand" class="admin-inp" maxlength="60" placeholder="하단 손글씨 문구" />
+          <input type="text" id="setFText" class="admin-inp" maxlength="140" placeholder="하단 안내 문구" />
+          <button class="btn btn-soft btn-block" onclick="saveSettings()">문구 저장하기</button>
+        </div>
+      </section>
+
+      <!-- 🏷️ 카테고리 -->
+      <section class="admin-sec hidden" id="asec-cats">
+        <h2 class="admin-h">🏷️ 카테고리</h2>
+        <div class="rowlist" id="catList" style="margin-bottom:14px;max-width:520px"></div>
+        <div style="display:flex;gap:8px;max-width:520px">
+          <input type="text" id="newCatEmoji" maxlength="4" placeholder="🎁" style="width:64px;text-align:center"
+            class="admin-inp" />
+          <input type="text" id="newCatName" maxlength="16" placeholder="새 카테고리 이름" class="admin-inp" style="flex:1" />
+          <button class="btn btn-soft" onclick="addCategory()">추가</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</main>
+
 <button id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="맨 위로">↑</button>
 
 <footer>
@@ -723,52 +798,6 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
   </div></div>
 </div>
 
-<!-- ═══════════════ 관리자 ═══════════════ -->
-<div class="modal hidden" id="adminModal">
-  <div class="backdrop" onclick="closeModal('adminModal')"></div>
-  <div class="panel"><div class="panel-pad">
-    <button class="close-x" onclick="closeModal('adminModal')">✕</button>
-    <div class="panel-eyebrow">amministrazione</div>
-    <h2 style="margin-bottom:6px">관리자</h2>
-    <p style="font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:18px">
-      물품의 수정·삭제·HOT 지정은 각 물품 상세 화면에서 바로 할 수 있어요.</p>
-    <div id="adminStats" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px"></div>
-    <h2 style="font-size:15px;margin-bottom:10px">👥 성도 관리</h2>
-    <input type="text" id="memberSearch" class="admin-inp" placeholder="닉네임·이메일 검색"
-      oninput="renderMembers()" style="margin-bottom:8px" />
-    <div class="rowlist" id="memberList" style="margin-bottom:12px">
-      <div class="empty" style="padding:14px 0">불러오는 중…</div>
-    </div>
-    <button class="btn btn-block" id="banListBtn" style="color:var(--muted);font-size:12px;margin-bottom:20px"
-      onclick="toggleBanList()">🚫 재가입 차단 목록 보기</button>
-    <div id="banListWrap" class="hidden" style="margin-bottom:20px">
-      <div class="rowlist" id="banList"></div>
-    </div>
-
-    <h2 style="font-size:15px;margin-bottom:10px">✍️ 사이트 문구</h2>
-    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px">
-      <input type="text" id="setEyebrow" class="admin-inp" maxlength="60" placeholder="배너 작은 문구" />
-      <input type="text" id="setLabel" class="admin-inp" maxlength="60" placeholder="배너 제목" />
-      <input type="text" id="setFHand" class="admin-inp" maxlength="60" placeholder="하단 손글씨 문구" />
-      <input type="text" id="setFText" class="admin-inp" maxlength="140" placeholder="하단 안내 문구" />
-    </div>
-    <button class="btn btn-soft btn-block" style="margin-bottom:20px" onclick="saveSettings()">문구 저장하기</button>
-
-    <h2 style="font-size:15px;margin-bottom:10px">🚨 신고된 물품</h2>
-    <div class="rowlist" id="reportList" style="margin-bottom:20px"></div>
-    <h2 style="font-size:15px;margin-bottom:10px">💬 신고된 채팅</h2>
-    <div class="rowlist" id="reportedChatList" style="margin-bottom:20px"></div>
-    <h2 style="font-size:15px;margin-bottom:10px">카테고리 관리</h2>
-    <div class="rowlist" id="catList" style="margin-bottom:12px"></div>
-    <div style="display:flex;gap:8px">
-      <input type="text" id="newCatEmoji" maxlength="4" placeholder="🎁" style="width:64px;text-align:center"
-        class="admin-inp" />
-      <input type="text" id="newCatName" maxlength="16" placeholder="새 카테고리 이름" class="admin-inp" style="flex:1" />
-      <button class="btn btn-soft" onclick="addCategory()">추가</button>
-    </div>
-  </div></div>
-</div>
-
 <style>
 .admin-inp{ background:var(--paper); border:1.5px solid var(--line); border-radius:12px; padding:10px 12px;
   font-weight:600; outline:none; }
@@ -776,6 +805,35 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
 .stat-box{ flex:1; min-width:100px; background:var(--butter); border-radius:14px; padding:12px 14px; }
 .stat-box .n{ font-size:19px; font-weight:800; font-variant-numeric:tabular-nums; }
 .stat-box .l{ font-size:11px; color:var(--muted); font-weight:700; }
+
+/* ── 관리자 전체화면 뷰 ── */
+#admin-top{ max-width:980px; }
+.admin-shell{ display:flex; gap:26px; align-items:flex-start; }
+.admin-side{ flex:0 0 208px; position:sticky; top:80px; }
+.admin-back{ font-size:13px; font-weight:800; color:var(--muted); padding:8px 10px; margin-bottom:12px;
+  border-radius:10px; }
+.admin-back:hover{ color:var(--carrot); background:var(--butter); }
+.admin-nav{ display:flex; flex-direction:column; gap:4px; }
+.admin-nav button{ text-align:left; padding:11px 14px; border-radius:12px; font-weight:700; font-size:14px;
+  color:var(--muted); transition:background .15s ease, color .15s ease; }
+.admin-nav button:hover{ background:var(--butter); color:var(--ink); }
+.admin-nav button.on{ background:var(--carrot); color:#fff; box-shadow:0 5px 13px rgba(232,100,27,.26); }
+.admin-content{ flex:1; min-width:0; }
+.admin-eyebrow{ font-family:var(--font-hand); font-size:13px; color:var(--muted); font-weight:600; margin-bottom:2px; }
+.admin-h{ font-size:20px; margin-bottom:16px; }
+.admin-sub{ font-size:14px; margin-bottom:10px; color:var(--ink); }
+.admin-note{ font-size:12.5px; color:var(--muted); font-weight:600; margin-top:14px; }
+.admin-stats{ display:flex; gap:8px; flex-wrap:wrap; }
+.admin-stats .stat-box{ flex:0 1 auto; min-width:120px; }
+@media (max-width:760px){
+  .admin-shell{ flex-direction:column; gap:16px; }
+  .admin-side{ flex:none; width:100%; position:static; top:auto; }
+  .admin-back{ margin-bottom:8px; display:inline-block; }
+  .admin-nav{ flex-direction:row; overflow-x:auto; gap:8px; padding-bottom:4px; scrollbar-width:none; }
+  .admin-nav::-webkit-scrollbar{ display:none; }
+  .admin-nav button{ flex:0 0 auto; white-space:nowrap; border:1.5px solid var(--line); }
+  .admin-nav button.on{ border-color:var(--carrot); }
+}
 .pwwrap{ position:relative; }
 .pwwrap input{ width:100%; padding-right:44px; }
 .pw-eye{ position:absolute; right:4px; top:50%; transform:translateY(-50%);
@@ -1467,7 +1525,6 @@ async function openConv(convId, asAdmin = false){
   document.querySelector(".chat-notice").style.display = asAdmin ? "none" : "";
 
   closeModal("chatListModal");
-  closeModal("adminModal");
   $("crBody").innerHTML = `<div class="empty" style="margin:auto">불러오는 중…</div>`;
   openModal("chatRoomModal");
   if (!asAdmin) history.replaceState({}, "", `${location.pathname}?chat=${c.id}`);
@@ -1772,6 +1829,9 @@ async function saveSettings(){
 /* ─────────────────────────────── 장터/게시판 전환 ── */
 function switchView(v){
   boardView = v;
+  $("admin-top").classList.add("hidden");
+  document.querySelector(".view-tabs").classList.remove("hidden");
+  renderNoticeStrip();
   $("vtMarket").classList.toggle("on", v === "market");
   $("vtBoard").classList.toggle("on", v === "board");
   $("market-top").classList.toggle("hidden", v !== "market");
@@ -2226,7 +2286,7 @@ async function loadReports(){
   }
   el.innerHTML = data.map(r => `
     <div class="rowitem">
-      <div class="rmain" onclick="closeModal('adminModal'); openDetail('${r.product_id}')">
+      <div class="rmain" onclick="openDetail('${r.product_id}')">
         <div class="rname">${esc(r.product?.name ?? "(삭제된 물품)")}</div>
         <div class="rsub">${esc(r.reason)}${r.detail ? " · " + esc(r.detail) : ""}
           — ${esc(r.reporter?.nickname ?? "?")}님 신고</div>
@@ -2908,8 +2968,40 @@ async function saveSubs(){
 }
 
 /* ─────────────────────────────────────────── 관리자 ── */
+// 별도 전체화면 뷰로 진입. 상단 공용 탭·배너를 숨기고 admin-top을 표시한다.
 async function openAdmin(){
   if (!profile?.is_admin) return;
+  $("market-top").classList.add("hidden");
+  $("board-top").classList.add("hidden");
+  document.querySelector(".ledger-wrap").classList.add("hidden");
+  document.querySelector(".view-tabs").classList.add("hidden");
+  $("noticeStrip").classList.add("hidden");
+  $("admin-top").classList.remove("hidden");
+  adminSection("dash");
+  window.scrollTo({ top: 0 });
+}
+
+// 관리자 뷰 → 장터로 복귀 (switchView가 admin-top을 숨기고 공용 탭을 복원)
+function exitAdmin(){
+  switchView("market");
+  window.scrollTo({ top: 0 });
+}
+
+// 사이드바 섹션 전환 + 해당 섹션 데이터 lazy 로딩
+function adminSection(sec){
+  document.querySelectorAll("#adminNav button").forEach(b =>
+    b.classList.toggle("on", b.dataset.sec === sec));
+  ["dash", "reports", "members", "settings", "cats"].forEach(s =>
+    $("asec-" + s).classList.toggle("hidden", s !== sec));
+  $("adminContent").scrollTop = 0;
+  if (sec === "dash") loadAdminStats();
+  else if (sec === "reports"){ loadReports(); loadReportedChats(); }
+  else if (sec === "members"){ resetBanList(); loadMembers(); }
+  else if (sec === "settings") fillSettingsForm();
+  else if (sec === "cats") renderCatAdmin();
+}
+
+async function loadAdminStats(){
   const sold = products.filter(p => p.status === "판매완료");
   const total = sold.reduce((s, p) => s + (Number(p.price) || 0), 0);
   const { count } = await db.from("profiles").select("id", { count: "exact", head: true });
@@ -2918,17 +3010,18 @@ async function openAdmin(){
     <div class="stat-box"><div class="n">${products.length}</div><div class="l">전체 물품</div></div>
     <div class="stat-box"><div class="n">${sold.length}</div><div class="l">나눔 완료</div></div>
     <div class="stat-box"><div class="n">${count ?? "-"}</div><div class="l">가입 성도</div></div>`;
+}
+
+function fillSettingsForm(){
   $("setEyebrow").value = siteSettings.banner_eyebrow ?? "";
   $("setLabel").value   = siteSettings.banner_label ?? "";
   $("setFHand").value   = siteSettings.footer_hand ?? "";
   $("setFText").value   = siteSettings.footer_text ?? "";
-  renderCatAdmin();
-  loadReports();
-  loadReportedChats();
-  loadMembers();
+}
+
+function resetBanList(){
   $("banListWrap").classList.add("hidden");
   $("banListBtn").textContent = "🚫 재가입 차단 목록 보기";
-  openModal("adminModal");
 }
 
 function renderCatAdmin(){
