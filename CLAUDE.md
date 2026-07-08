@@ -144,7 +144,9 @@
 **아이콘/브랜딩**: 당근+십자가 SVG. 팔레트 — 몸통 `#E8641B`, 결 `#C24E12`, 잎 `#3E7C4F`/`#4C9260`,
 십자가 `#FDFBF6`, 배경 `#FBF1E4`. SVG 좌표는 index.html의 PLACEHOLDER 상수와 favicon.svg에 있음.
 
-**배포 파일**(저장소 루트): `index.html`, `favicon.svg`, `manifest.webmanifest`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`.
+**배포 파일**(저장소 루트): `index.html`, `favicon.svg`, `manifest.webmanifest`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, `og-image.png`(1200×630 링크 미리보기 카드).
+
+> **OG 미리보기**: `<head>`에 사이트 공통 Open Graph/Twitter 태그 + `og-image.png`(카톡·SNS 카드). 단일 파일 SPA라 크롤러가 JS 실행 전 정적 HTML만 읽으므로 **물품별 개별 미리보기는 불가**(전 링크 공통 카드). og-image.png는 로고 SVG를 캔버스로 렌더해 생성했음.
 
 ---
 
