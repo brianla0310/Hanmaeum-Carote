@@ -1390,6 +1390,12 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
 const SUPABASE_URL      = "https://qvjkbpqoztptemympwxy.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_7D5ucUDeHKp6fM0DMfctLw_4VVHs053";
 
+/* 구글 로그인(GIS + signInWithIdToken)용 클라이언트 ID.
+   Google Cloud Console → 사용자 인증 정보 → OAuth 2.0 클라이언트 ID (웹) 값.
+   비워두면(""), 기존 signInWithOAuth(리다이렉트) 방식으로 자동 폴백합니다.
+   ★ 여기에 클라이언트 ID를 붙여넣으면 사이트 내 구글 로그인(GIS)이 활성화됩니다. ★ */
+const GOOGLE_CLIENT_ID  = "";
+
 /* ─────────────────────────────────────────────── state ── */
 let db = null;
 let session = null;          // supabase auth session
@@ -2829,7 +2835,75 @@ async function doDeleteAccount(){
 /* ─────────────────────────────────────────────── auth ── */
 function openAuth(tab){ openModal("authModal"); switchAuthTab(tab || "login"); }
 
+/* 구글 로그인: GIS(Google Identity Services) + signInWithIdToken.
+   → 구글 계정 선택이 supabase.co가 아닌 우리 사이트에서 바로 뜸.
+   Client ID 미설정/스크립트 차단/프롬프트 미표시 시 기존 리다이렉트 방식으로 폴백. */
+let gisLoadPromise = null;
+let gisNonceRaw = null;
+
+function loadGisScript(){
+  if (gisLoadPromise) return gisLoadPromise;
+  gisLoadPromise = new Promise((resolve, reject) => {
+    if (window.google?.accounts?.id) return resolve();
+    const s = document.createElement("script");
+    s.src = "https://accounts.google.com/gsi/client";
+    s.async = true; s.defer = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error("GIS 스크립트 로드 실패"));
+    document.head.appendChild(s);
+  });
+  return gisLoadPromise;
+}
+
+async function makeGisNonce(){
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  const raw = [...bytes].map(b => b.toString(16).padStart(2, "0")).join("");
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw));
+  const hashed = [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+  return { raw, hashed };
+}
+
 async function signInWithGoogle(){
+  // Client ID 미설정 → 기존 리다이렉트 방식
+  if (!GOOGLE_CLIENT_ID) return googleRedirectFallback();
+  try {
+    await loadGisScript();
+  } catch (e){
+    return googleRedirectFallback();   // 스크립트 로드 실패/차단 → 폴백
+  }
+  try {
+    const { raw, hashed } = await makeGisNonce();
+    gisNonceRaw = raw;
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: onGoogleCredential,
+      nonce: hashed,
+      use_fedcm_for_prompt: true,
+      auto_select: false,
+    });
+    // One Tap / 계정 선택 프롬프트. 표시 불가(차단·이전 닫음 등)면 리다이렉트로 폴백.
+    google.accounts.id.prompt((n) => {
+      if (n.isNotDisplayed?.() || n.isSkippedMoment?.()) googleRedirectFallback();
+    });
+  } catch (e){
+    return googleRedirectFallback();
+  }
+}
+
+// GIS 로그인 성공 콜백: id_token(credential) + 원본 nonce 로 Supabase 세션 생성
+async function onGoogleCredential(response){
+  const token = response?.credential;
+  if (!token) return;
+  const { error } = await db.auth.signInWithIdToken({
+    provider: "google", token, nonce: gisNonceRaw ?? undefined,
+  });
+  gisNonceRaw = null;
+  if (error){ toast("구글 로그인에 실패했어요. 다시 시도해주세요.", "err"); return; }
+  closeModal("authModal");
+  // 이후 흐름(프로필 완성 → 승인 대기 → 온보딩)은 SIGNED_IN → revealForSession 이 처리.
+}
+
+async function googleRedirectFallback(){
   const { error } = await db.auth.signInWithOAuth({
     provider: "google",
     options: { redirectTo: location.origin },
