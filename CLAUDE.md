@@ -94,8 +94,10 @@
 
 ### 함수 (RPC / 트리거)
 - `is_admin()` / `is_approved()` — 관리자·승인 여부. SECURITY DEFINER STABLE. 쓰기 RLS·RPC 내부 검증에 사용.
-- `handle_new_user()` — 가입 트리거. 차단 이메일 거부 + profiles 생성(metadata의 nickname·full_name 저장, approved=false).
+- `handle_new_user()` — 가입 트리거. 차단 이메일 거부 + profiles 생성(approved=false). **full_name은 이메일 가입(provider=email)만 저장**, OAuth(google)는 null(→ 프론트 프로필 완성 모달). nickname은 metadata nickname→Google name→'성도' 순.
 - `admin_approve_member(p_user_id)` — 관리자가 성도 승인(approved=true). is_admin 검증. false→true 시 승인 메일 트리거.
+- `complete_profile(p_full_name, p_nickname)` — 본인 실명·닉네임 저장(구글 로그인 후 프로필 완성). full_name UPDATE 권한이 없어 정의자 함수로 처리.
+- `get_my_profile()` — 본인 프로필 조회(full_name 포함). full_name은 SELECT 차단이라 프론트 `loadProfile`이 이 RPC로 실명 유무를 판단.
 - `reserve_product(p_id)` / `cancel_reservation(p_id)` — 예약/취소. (내부에서 `is_approved()` 검증)
 - `set_sold_at()` — 판매완료 시각 트리거.
 - `get_or_create_conversation(p_product_id)` — 구매자가 대화방 생성/조회.
@@ -106,7 +108,7 @@
 - `admin_list_reported_chats()` — 관리자용 신고된 대화 목록.
 - `cleanup_old_chats()` — 판매완료 7일 후 대화 삭제. **pg_cron으로 매일 04:00 실행** (`cron.schedule`).
 - `notify_*_webhook()` — products/reports/posts/messages 삽입 시 해당 Edge Function 호출(pg_net, `x-notify-secret` 헤더).
-- `notify_profiles_webhook()` — profiles INSERT(가입 승인 대기 알림) / approved false→true UPDATE(승인 완료 알림) → notify 함수 호출.
+- `notify_profiles_webhook()` — 가입 승인 대기/승인 완료 알림용. 트리거 3종: INSERT(full_name 있을 때=이메일 가입) / full_name null→값 UPDATE(=OAuth 프로필 완성) → 관리자 승인 대기 알림, approved false→true UPDATE → 승인 완료 알림. (이메일·OAuth 각각 1회, 중복 없음)
 
 > **RLS 요약(보안 개편 후)**: 읽기는 **로그인 우선** — products/posts/comments select = `auth.uid() is not null`(site_settings/categories만 공개). 쓰기(products·posts·comments·messages·favorites·reports·subscriptions insert, products update)는 **승인 필요** — `is_approved()` 조건 추가. 단 **본인 profiles UPDATE(알림 설정)는 승인 전에도 허용**. reserve/cancel/get_or_create_conversation/report_conversation RPC도 내부에서 `is_approved()` 검증.
 
@@ -122,7 +124,7 @@
 - **notify** — products/reports/posts/profiles 웹훅 수신.
   - A) 새 물품 → 구독자 이메일  B) 예약(판매중→예약중) → 판매자
   - C) 신고 접수 → 관리자 전체  D) 공지(notify=true) → 수신동의 성도 전체
-  - E) 새 가입(profiles INSERT) → 관리자 전체("가입 승인 대기: 실명/닉네임")
+  - E) 새 가입(INSERT, 이메일 가입) / 프로필 완성(full_name null→값, OAuth) → 관리자 전체("가입 승인 대기: 실명/닉네임")
   - F) 승인 완료(approved false→true) → 해당 성도("승인 완료, 이제 이용 가능")
   - `NOTIFY_SECRET` 헤더 검증. Brevo로 발송.
 - **notify-chat** — messages/채팅신고 웹훅 수신.
@@ -190,11 +192,13 @@ git add -A && git commit -m "설명" && git push
 - 2차: 게시판(공지/자유/후기, 댓글, 공지 이메일), 사이트 문구 편집, 성도 관리(강제탈퇴·재가입차단), 가입 후 알림 온보딩.
 - 3차: 1:1 채팅(Realtime, 안읽음 배지, 첫 메시지만 이메일, 신고 시 관리자 열람, 7일 후 자동삭제).
 - 4차: 관리자 전체화면 뷰 개편(좌측 사이드바/모바일 가로 탭), 판매내역 섹션(과거기록 `legacy`·CSV 내보내기), **커스텀 도메인 `hanmaeumcarote.com` 연결**(Cloudflare DNS only→Netlify) + Brevo 도메인 인증(SPF/DKIM).
-- 5차: **보안 개편** — 가입 승인제(`approved`·실명 `full_name`·`admin_approve_member`), 로그인 우선 랜딩(비로그인 랜딩·읽기 RLS `auth.uid() is not null`), 쓰기 RLS·RPC에 `is_approved()`, 승인 대기 화면, 관리자 승인 UI(대기 강조·승인 버튼), 가입 대기·승인 완료 이메일(notify E/F), "로그인 상태 유지" 세션 옵션(sessionStorage 어댑터), 딥링크 로그인 후 이어열기, 이메일 인증 안내·재발송.
+- 5차: **보안 개편** — 가입 승인제(`approved`·실명 `full_name`·`admin_approve_member`), 로그인 우선 랜딩(비로그인 랜딩·읽기 RLS `auth.uid() is not null`), 쓰기 RLS·RPC에 `is_approved()`, 승인 대기 화면, 관리자 승인 UI(대기 강조·승인 버튼), 가입 대기·승인 완료 이메일(notify E/F), "로그인 상태 유지" 세션 옵션(sessionStorage 어댑터), 딥링크 로그인 후 이어열기, 이메일 인증 안내·재발송. Supabase 인증 메일 한국어 템플릿(`docs/email-templates/`). 모금 목표 게이지(`goal_enabled/goal_amount`).
+- 6차: **구글 로그인**(OAuth) — 인증 모달에 "구글로 계속하기"(+"또는 이메일로" 구분선), `signInWithOAuth({provider:'google', redirectTo:location.origin})`. OAuth 사용자는 실명이 없어 **프로필 완성 모달**(필수·닫기 불가, 승인 대기·온보딩보다 먼저)로 실명·닉네임 입력 → `complete_profile` RPC. `handle_new_user`가 provider별로 full_name 분기, `get_my_profile` RPC로 본인 full_name 판단, 승인 대기 알림 트리거를 INSERT(full_name 有)+full_name채움 UPDATE로 분기(이메일/OAuth 각 1회).
 
 ### 알려진 한계 (의도적 결정)
 - **가입 승인제로 1차 방어**: 아무나 가입해도 관리자 승인 전엔 읽기만 가능(쓰기·예약·채팅·게시 전부 RLS 차단). 승인 없이는 실질 이용 불가.
-- 이메일 인증(Confirm email)은 **배포 후 사용자가 대시보드에서 켤 예정**. 꺼진 상태에서도 프런트가 깨지지 않게 처리됨(켜면 가입 후 인증 안내 화면 + 재발송 동작). CAPTCHA 없음.
+- 이메일 인증(Confirm email) **ON**(대시보드에서 켬). Auth Custom SMTP는 Brevo(smtp-relay.brevo.com, SMTP 키). 인증 메일 실패 시 가입이 500으로 떨어지므로 SMTP 상태 주의. 인증 한국어 템플릿은 `docs/email-templates/`. CAPTCHA 없음.
+- **구글 로그인 사용자**: 이메일 인증 불필요(구글이 인증). 대신 실명이 없어 로그인 후 프로필 완성 모달 필수 → 그 뒤 관리자 승인 대기.
 - 재가입 차단은 이메일 기준(다른 이메일로는 재가입 가능). 강제 탈퇴(=거절)+차단은 기존 흐름 재사용.
 - Supabase Auth "유출된 비밀번호 방지"(HaveIBeenPwned) — 켜기 권장(요금제 제한 가능).
 
