@@ -83,7 +83,7 @@
 - **subscriptions** `(id, user_id, category_id)` — category_id NULL = 전체 알림.
 - **favorites** `(user_id, product_id)` PK 복합. RLS 본인만.
 - **reports** `(id, product_id, reporter_id, reason, detail, created_at)` — unique(product_id, reporter_id).
-- **site_settings** `(key, value)` — 배너/푸터 문구. 관리자만 쓰기. keys: `banner_eyebrow, banner_label, footer_hand, footer_text`.
+- **site_settings** `(key, value)` — 배너/푸터 문구·모금 목표. 관리자만 쓰기. keys: `banner_eyebrow, banner_label, footer_hand, footer_text, goal_enabled('true'/'false'), goal_amount(숫자 문자열)`.
 - **banned_emails** `(email, reason, created_at)` — 재가입 차단. 관리자만.
 - **posts** `(id, board, title, content, images[], author_id, product_id, notify, created_at, updated_at)`
   - board: `notice | free | review`. 공지는 관리자만. 후기(review)는 판매완료 후 7일 이내 구매자만, 물품당 1개(unique index).
