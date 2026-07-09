@@ -91,13 +91,18 @@
 - **conversations** `(id, product_id, seller_id, buyer_id, last_message, last_at, seller_read_at, buyer_read_at, reported, created_at)`
   - unique(product_id, buyer_id). seller/buyer는 SET NULL. **탈퇴 시 명시적으로 삭제 필요**(연쇄 안 됨).
 - **messages** `(id, conv_id, sender_id, body, created_at)`
+- **notifications** `(id bigint, user_id→profiles cascade, type, title, body, link_kind, link_id, read, created_at)` — 인앱 알림. RLS: 본인 select + `read`만 update. **클라이언트 insert 불가**(정의자 트리거만 생성). index(user_id, created_at desc). realtime publication 포함. 30일 후 `cleanup_old_chats()`가 삭제.
+  - `link_kind`: `product | post | conv | admin_members | admin_reports`. 프론트가 이걸로 대상 열기.
+- **profiles.notif_seen_at** timestamptz — 종을 마지막으로 연 시각(빨간 점 기준). 본인 update grant.
 
 ### 함수 (RPC / 트리거)
 - `is_admin()` / `is_approved()` — 관리자·승인 여부. SECURITY DEFINER STABLE. 쓰기 RLS·RPC 내부 검증에 사용.
 - `handle_new_user()` — 가입 트리거. 차단 이메일 거부 + profiles 생성(approved=false). **full_name은 이메일 가입(provider=email)만 저장**, OAuth(google)는 null(→ 프론트 프로필 완성 모달). nickname은 metadata nickname→Google name→'성도' 순.
 - `admin_approve_member(p_user_id)` — 관리자가 성도 승인(approved=true). is_admin 검증. false→true 시 승인 메일 트리거.
 - `complete_profile(p_full_name, p_nickname)` — 본인 실명·닉네임 저장(구글 로그인 후 프로필 완성). full_name UPDATE 권한이 없어 정의자 함수로 처리.
-- `get_my_profile()` — 본인 프로필 조회(full_name 포함). full_name은 SELECT 차단이라 프론트 `loadProfile`이 이 RPC로 실명 유무를 판단.
+- `get_my_profile()` — 본인 프로필 조회(full_name·notif_seen_at 포함). full_name은 SELECT 차단이라 프론트 `loadProfile`이 이 RPC로 실명 유무를 판단.
+- `_add_notif(user,type,title,body,link_kind,link_id)` — 인앱 알림 생성 헬퍼(정의자).
+- `notif_*()` 트리거 — 인앱 알림 생성(본인 행동엔 안 만듦, `is distinct from auth.uid()`): products(예약/취소/판매완료→판매자·구매자), comments(→글쓴이, 본인 제외), posts review(→판매자), reports·conversations 신고(→관리자), profiles 실명 채워짐(→관리자, 이메일 트리거와 별개).
 - `reserve_product(p_id)` / `cancel_reservation(p_id)` — 예약/취소. (내부에서 `is_approved()` 검증)
 - `set_sold_at()` — 판매완료 시각 트리거.
 - `get_or_create_conversation(p_product_id)` — 구매자가 대화방 생성/조회.
@@ -106,7 +111,7 @@
 - `admin_resolve_chat(p_conv_id)` — 관리자가 신고 해제. (RLS UPDATE+RETURNING 충돌 회피용 전용 함수)
 - `admin_list_members()` — 관리자용 전체 성도 목록(실명·이메일·approved 포함, 미승인 먼저 정렬).
 - `admin_list_reported_chats()` — 관리자용 신고된 대화 목록.
-- `cleanup_old_chats()` — 판매완료 7일 후 대화 삭제. **pg_cron으로 매일 04:00 실행** (`cron.schedule`).
+- `cleanup_old_chats()` — 판매완료 7일 후 대화 삭제 **+ 30일 지난 notifications 삭제**. **pg_cron으로 매일 04:00 실행** (`cron.schedule`).
 - `notify_*_webhook()` — products/reports/posts/messages 삽입 시 해당 Edge Function 호출(pg_net, `x-notify-secret` 헤더).
 - `notify_profiles_webhook()` — 가입 승인 대기/승인 완료 알림용. 트리거 3종: INSERT(full_name 있을 때=이메일 가입) / full_name null→값 UPDATE(=OAuth 프로필 완성) → 관리자 승인 대기 알림, approved false→true UPDATE → 승인 완료 알림. (이메일·OAuth 각각 1회, 중복 없음)
 
@@ -140,7 +145,7 @@
 **뷰 전환**: 상단 탭으로 `🥕 장터` / `💬 게시판` 전환(`switchView`). 관리자는 별도 모달(개편 예정 — 아래 로드맵).
 
 **주요 화면/기능**
-- 헤더: 로고(당근+십자가 SVG), 물품 올리기, 💬 채팅(안읽음 배지), 프로필 드롭다운.
+- 헤더: 로고(당근+십자가 SVG), 물품 올리기(좁은 폭 ＋아이콘), 🔔 알림(빨간점·흔들림), 💬 채팅(안읽음 배지), 프로필 드롭다운.
 - 장터: 통계 배너 + 검색 + 카테고리 칩 + 정렬(최신/기부금순) + 물품 그리드(찜 하트).
 - 물품 상세 모달: 이미지, 예약/취소, 판매자에게 문의(채팅), 찜, 공유, 신고, 나눔후기(구매자·7일).
 - 내 활동 모달: 내 물품 / 예약한 물품 / 🧡 찜 탭.
@@ -193,6 +198,7 @@ git add -A && git commit -m "설명" && git push
 - 3차: 1:1 채팅(Realtime, 안읽음 배지, 첫 메시지만 이메일, 신고 시 관리자 열람, 7일 후 자동삭제).
 - 4차: 관리자 전체화면 뷰 개편(좌측 사이드바/모바일 가로 탭), 판매내역 섹션(과거기록 `legacy`·CSV 내보내기), **커스텀 도메인 `hanmaeumcarote.com` 연결**(Cloudflare DNS only→Netlify) + Brevo 도메인 인증(SPF/DKIM).
 - 5차: **보안 개편** — 가입 승인제(`approved`·실명 `full_name`·`admin_approve_member`), 로그인 우선 랜딩(비로그인 랜딩·읽기 RLS `auth.uid() is not null`), 쓰기 RLS·RPC에 `is_approved()`, 승인 대기 화면, 관리자 승인 UI(대기 강조·승인 버튼), 가입 대기·승인 완료 이메일(notify E/F), "로그인 상태 유지" 세션 옵션(sessionStorage 어댑터), 딥링크 로그인 후 이어열기, 이메일 인증 안내·재발송. Supabase 인증 메일 한국어 템플릿(`docs/email-templates/`). 모금 목표 게이지(`goal_enabled/goal_amount`).
+- 7차: **인앱 알림 센터**(🔔) — `notifications` 테이블·정의자 트리거(예약·취소·판매완료·댓글·후기·신고·가입대기), 헤더 종+빨간점(`notif_seen_at`)+딸랑 흔들림(reduced-motion 대응), 알림 패널(미읽음 음영·상대시간·클릭 시 대상 열기·모두 읽음), Realtime 구독(INSERT), 30일 후 자동삭제. RLS 본인만, 클라이언트 insert 불가.
 - 6차: **구글 로그인**(OAuth) — 인증 모달에 "구글로 계속하기"(+"또는 이메일로" 구분선), `signInWithOAuth({provider:'google', redirectTo:location.origin})`. OAuth 사용자는 실명이 없어 **프로필 완성 모달**(필수·닫기 불가, 승인 대기·온보딩보다 먼저)로 실명·닉네임 입력 → `complete_profile` RPC. `handle_new_user`가 provider별로 full_name 분기, `get_my_profile` RPC로 본인 full_name 판단, 승인 대기 알림 트리거를 INSERT(full_name 有)+full_name채움 UPDATE로 분기(이메일/OAuth 각 1회).
 
 ### 알려진 한계 (의도적 결정)

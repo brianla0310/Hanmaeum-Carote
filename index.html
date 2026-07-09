@@ -453,6 +453,13 @@ main{ max-width:1180px; margin:0 auto; padding:30px 20px 80px; }
 .profile-chip{
   display:flex; align-items:center; gap:8px; padding:6px 14px 6px 6px; border-radius:999px;
   background:var(--card); border:1.5px solid var(--line); font-weight:700; font-size:13px;
+  max-width:44vw; min-width:0;
+}
+.profile-chip .pc-name{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+@media (max-width:430px){
+  .header-actions{ gap:6px; }
+  #postBtn .pb-text{ display:none; }
+  #postBtn{ padding:11px 15px; font-size:16px; }
 }
 .profile-chip .avatar{
   width:28px; height:28px; border-radius:50%; background:var(--leaf); color:#fff;
@@ -1081,6 +1088,39 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
 .icon-btn{ position:relative; width:40px; height:40px; border-radius:12px; border:1.5px solid var(--line);
   background:var(--card); cursor:pointer; font-size:17px; display:grid; place-items:center; }
 .icon-btn:hover{ border-color:var(--carrot); }
+
+/* 알림 종 + 빨간 점 + 흔들림 */
+.notif-dot{ position:absolute; top:-3px; right:-3px; width:10px; height:10px; border-radius:50%;
+  background:var(--danger); border:2px solid var(--paper); }
+#bellBtn.bell-shake{ animation:bell-swing 1s ease; }
+#bellBtn.bell-shake > span:first-child{ display:inline-block; animation:bell-swing 1s ease; transform-origin:50% 15%; }
+#bellBtn.bell-shake::after{ content:""; position:absolute; inset:-4px; border-radius:14px;
+  border:2px solid var(--carrot); opacity:0; animation:bell-wave .9s ease; pointer-events:none; }
+@keyframes bell-swing{
+  0%{ transform:rotate(0); } 15%{ transform:rotate(15deg); } 30%{ transform:rotate(-13deg); }
+  45%{ transform:rotate(10deg); } 60%{ transform:rotate(-6deg); } 75%{ transform:rotate(3deg); }
+  100%{ transform:rotate(0); } }
+@keyframes bell-wave{ 0%{ transform:scale(.85); opacity:.55; } 100%{ transform:scale(1.5); opacity:0; } }
+@media (prefers-reduced-motion: reduce){
+  #bellBtn.bell-shake, #bellBtn.bell-shake > span:first-child{ animation:none; }
+  #bellBtn.bell-shake::after{ animation:none; display:none; }
+}
+
+/* 알림 패널 */
+.notif-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; }
+.notif-allread{ background:none; border:none; color:var(--muted); font-size:12px; font-weight:700; cursor:pointer; padding:6px 8px; }
+.notif-allread:hover{ color:var(--carrot); }
+.notif-item{ display:flex; align-items:flex-start; gap:10px; width:100%; text-align:left;
+  padding:12px 14px; border:1.5px solid var(--line); border-radius:14px; background:var(--card);
+  cursor:pointer; transition:border-color .15s; }
+.notif-item:hover{ border-color:var(--carrot); }
+.notif-item.unread{ background:var(--butter); border-color:#F0D9BA; }
+.notif-item.read{ opacity:.62; }
+.notif-item .ni-main{ flex:1; min-width:0; }
+.notif-item .ni-title{ font-weight:800; font-size:13.5px; }
+.notif-item .ni-body{ font-size:12.5px; color:var(--muted); font-weight:600; margin-top:2px; overflow-wrap:break-word; }
+.notif-item .ni-time{ font-size:11px; color:var(--muted); font-weight:600; margin-top:5px; }
+.notif-item .ni-unread-dot{ width:8px; height:8px; border-radius:50%; background:var(--carrot); flex:none; margin-top:4px; }
 .chat-row-thumb{ width:52px; height:52px; border-radius:12px; object-fit:cover; background:var(--butter);
   flex-shrink:0; display:grid; place-items:center; font-size:22px; }
 .chat-row.unread .rname{ font-weight:800; }
@@ -1221,6 +1261,22 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
     <div class="panel-eyebrow">messaggi</div>
     <h2 style="margin-bottom:14px">💬 채팅</h2>
     <div class="rowlist" id="chatList">
+      <div class="empty" style="padding:14px 0">불러오는 중…</div>
+    </div>
+  </div></div>
+</div>
+
+<!-- ═══════════════ 알림 센터 ═══════════════ -->
+<div class="modal hidden" id="notifModal">
+  <div class="backdrop" onclick="closeModal('notifModal')"></div>
+  <div class="panel"><div class="panel-pad">
+    <button class="close-x" onclick="closeModal('notifModal')">✕</button>
+    <div class="panel-eyebrow">notifiche</div>
+    <div class="notif-head">
+      <h2 style="margin:0">🔔 알림</h2>
+      <button class="notif-allread" onclick="markAllNotifRead()">모두 읽음</button>
+    </div>
+    <div class="rowlist" id="notifList">
       <div class="empty" style="padding:14px 0">불러오는 중…</div>
     </div>
   </div></div>
@@ -1369,6 +1425,9 @@ let chatChannel = null;       // 현재 방 realtime 구독
 let listChannel = null;       // 목록 realtime 구독
 let adminChatView = false;    // 관리자 열람 모드
 let chatReportConv = null;
+let notifications = [];       // 최근 알림 목록
+let notifSeenAt = null;       // 종을 마지막으로 연 시각(빨간 점 기준)
+let notifChannel = null;      // 알림 realtime 구독
 const BOARD_META = {
   notice: { label: "📢 공지",     name: "공지" },
   free:   { label: "💬 자유게시판", name: "자유게시판" },
@@ -1482,7 +1541,7 @@ function isReady(){ return !!session && !!profile && profile.approved === true; 
 async function handleAuthChange(event, s){
   if (event === "SIGNED_OUT"){
     profile = null; myFavs = new Set(); products = []; posts = [];
-    chatUnread = 0; teardownChatList();
+    chatUnread = 0; teardownChatList(); teardownNotif();
     renderHeader(); renderGrid(); renderGate();
     return;
   }
@@ -1511,6 +1570,10 @@ async function revealForSession(){
     await loadFavs();
     renderGrid();
     refreshChatUnread();
+    notifSeenAt = profile.notif_seen_at || null;
+    await loadNotifications();
+    setupNotifRealtime();
+    if (hasUnseenNotif()) shakeBell();   // 로드 시 미확인 있으면 종 흔들림 1회
     if (profile.notify_setup_done === false) openNotify(true);
     openPendingDeepLink();
   }
@@ -1630,12 +1693,14 @@ function renderHeader(){
   }
   const initial = esc((profile.nickname || "성")[0]);
   el.innerHTML = `
-    <button class="btn btn-primary" onclick="openPost()">＋ 물품 올리기</button>
+    <button class="btn btn-primary" id="postBtn" onclick="openPost()"><span>＋</span><span class="pb-text"> 물품 올리기</span></button>
+    <button class="icon-btn" id="bellBtn" onclick="openNotifPanel()" aria-label="알림" title="알림"><span>🔔</span><span class="notif-dot hidden" id="bellDot"></span></button>
     <button class="icon-btn" onclick="openChatList()" aria-label="채팅" title="채팅">💬${
       chatUnread > 0 ? `<span class="chat-badge">${chatUnread > 99 ? "99+" : chatUnread}</span>` : ""}</button>
     <button class="profile-chip" onclick="toggleDropdown()">
-      <span class="avatar">${initial}</span>${esc(profile.nickname)}
+      <span class="avatar">${initial}</span><span class="pc-name">${esc(profile.nickname)}</span>
     </button>`;
+  updateBellDot();
 }
 
 function toggleDropdown(force){
@@ -1696,6 +1761,139 @@ async function softRefreshUnread(){
   chatUnread = convos.filter(isConvUnread).length;
   renderHeader();
   if (!$("chatListModal").classList.contains("hidden")) renderChatList();
+}
+
+/* ─────────────────────────────── 알림 센터 ── */
+async function loadNotifications(){
+  if (!session) return;
+  const { data, error } = await db.from("notifications")
+    .select("id, type, title, body, link_kind, link_id, read, created_at")
+    .order("created_at", { ascending: false }).limit(30);
+  if (error){ return; }
+  notifications = data ?? [];
+  updateBellDot();
+}
+
+function hasUnseenNotif(){
+  if (notifications.length === 0) return false;
+  if (!notifSeenAt) return true;
+  const seen = new Date(notifSeenAt).getTime();
+  return notifications.some(n => new Date(n.created_at).getTime() > seen);
+}
+
+function updateBellDot(){
+  const dot = $("bellDot");
+  if (dot) dot.classList.toggle("hidden", !hasUnseenNotif());
+}
+
+function shakeBell(){
+  const bell = $("bellBtn");
+  if (!bell) return;
+  bell.classList.remove("bell-shake");
+  void bell.offsetWidth;              // reflow → 애니메이션 재시작
+  bell.classList.add("bell-shake");
+  setTimeout(() => bell.classList.remove("bell-shake"), 1100);
+}
+
+function notifTimeAgo(t){
+  const d = new Date(t), now = new Date();
+  const s = (now - d) / 1000;
+  if (s < 60) return "방금 전";
+  if (s < 3600) return Math.floor(s / 60) + "분 전";
+  if (s < 86400) return Math.floor(s / 3600) + "시간 전";
+  const y = new Date(now); y.setDate(now.getDate() - 1);
+  if (d.getFullYear() === y.getFullYear() && d.getMonth() === y.getMonth() && d.getDate() === y.getDate())
+    return "어제";
+  return d.toLocaleDateString("ko-KR", { month: "long", day: "numeric" });
+}
+
+async function openNotifPanel(){
+  openModal("notifModal");
+  $("notifList").innerHTML = `<div class="empty" style="padding:14px 0">불러오는 중…</div>`;
+  await loadNotifications();
+  renderNotifList();
+  // 종 연 시각 갱신 → 빨간 점 즉시 제거
+  const now = new Date().toISOString();
+  notifSeenAt = now;
+  updateBellDot();
+  if (session) await db.from("profiles").update({ notif_seen_at: now }).eq("id", session.user.id);
+}
+
+function renderNotifList(){
+  const el = $("notifList");
+  if (notifications.length === 0){
+    el.innerHTML = `<div class="empty" style="padding:28px 0;text-align:center">
+      <img src="${PLACEHOLDER}" alt="" style="width:64px;border-radius:18px;margin-bottom:10px;opacity:.7" /><br/>
+      아직 받은 알림이 없어요.</div>`;
+    return;
+  }
+  el.innerHTML = notifications.map(n => `
+    <button class="notif-item ${n.read ? "read" : "unread"}" onclick="onNotifClick(${n.id})">
+      <div class="ni-main">
+        <div class="ni-title">${esc(n.title)}</div>
+        ${n.body ? `<div class="ni-body">${esc(n.body)}</div>` : ""}
+        <div class="ni-time">${notifTimeAgo(n.created_at)}</div>
+      </div>
+      ${n.read ? "" : `<span class="ni-unread-dot"></span>`}
+    </button>`).join("");
+}
+
+async function onNotifClick(id){
+  const n = notifications.find(x => x.id === id);
+  if (!n) return;
+  if (!n.read){
+    n.read = true;
+    renderNotifList();
+    db.from("notifications").update({ read: true }).eq("id", id);
+  }
+  closeModal("notifModal");
+  openNotifTarget(n);
+}
+
+function openNotifTarget(n){
+  const k = n.link_kind, v = n.link_id;
+  if (k === "product"){
+    if (products.some(p => p.id === v)) openDetail(v);
+    else toast("삭제된 항목이에요", "err");
+  } else if (k === "post"){
+    if (posts.some(p => p.id === v)){ switchView("board"); openPostView(v); }
+    else toast("삭제된 항목이에요", "err");
+  } else if (k === "conv"){
+    if (v) openChatById(v); else toast("삭제된 항목이에요", "err");
+  } else if (k === "admin_members" && profile?.is_admin){
+    openAdmin(); adminSection("members");
+  } else if (k === "admin_reports" && profile?.is_admin){
+    openAdmin(); adminSection("reports");
+  }
+}
+
+async function markAllNotifRead(){
+  if (notifications.every(n => n.read)){ toast("읽지 않은 알림이 없어요"); return; }
+  notifications.forEach(n => n.read = true);
+  renderNotifList();
+  if (session) await db.from("notifications").update({ read: true })
+    .eq("user_id", session.user.id).eq("read", false);
+  toast("모두 읽음 처리했어요");
+}
+
+function setupNotifRealtime(){
+  if (notifChannel || !session) return;
+  notifChannel = db.channel("notif-" + session.user.id)
+    .on("postgres_changes",
+      { event: "INSERT", schema: "public", table: "notifications",
+        filter: "user_id=eq." + session.user.id },
+      (payload) => {
+        notifications.unshift(payload.new);
+        if (notifications.length > 30) notifications.pop();
+        updateBellDot();
+        shakeBell();
+        if (!$("notifModal").classList.contains("hidden")) renderNotifList();
+      })
+    .subscribe();
+}
+function teardownNotif(){
+  if (notifChannel){ db.removeChannel(notifChannel); notifChannel = null; }
+  notifications = []; notifSeenAt = null;
 }
 
 /* ── 채팅 목록 ── */
