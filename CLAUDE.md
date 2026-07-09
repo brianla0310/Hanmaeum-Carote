@@ -72,8 +72,9 @@
 ## DB 스키마 (public)
 
 ### 테이블
-- **profiles** `(id, nickname, email, is_admin, notice_email, notify_setup_done)`
-  - `email` 컬럼은 일반 grant 차단(관리자 함수로만 조회). 가입 시 `handle_new_user` 트리거로 생성.
+- **profiles** `(id, nickname, full_name, email, is_admin, approved, notice_email, notify_setup_done)`
+  - `email`·`full_name` 컬럼은 일반 grant 차단(관리자 함수로만 조회 — PII). 가입 시 `handle_new_user` 트리거로 생성.
+  - `full_name`: 실명(관리자 승인 확인용, 다른 성도엔 비노출). `approved`: 관리자 승인 여부(기본 false, 기존 회원 전원 true).
   - `notice_email`: 공지 이메일 수신 동의(기본 false). `notify_setup_done`: 가입 후 알림 온보딩 완료 여부.
 - **categories** `(id, name, emoji, ...)` — 7개 시드. 무료나눔은 카테고리 아님(price=0이면 💚 무료나눔).
 - **products** `(id, name, price, status, description, images[], is_hot, seller_id, reserved_by, sold_at, created_at, category_id)`
@@ -92,18 +93,22 @@
 - **messages** `(id, conv_id, sender_id, body, created_at)`
 
 ### 함수 (RPC / 트리거)
-- `is_admin()` — 현재 사용자가 관리자인지. SECURITY DEFINER.
-- `handle_new_user()` — 가입 트리거. 차단 이메일 거부 + profiles 생성.
-- `reserve_product(p_id)` / `cancel_reservation(p_id)` — 예약/취소.
+- `is_admin()` / `is_approved()` — 관리자·승인 여부. SECURITY DEFINER STABLE. 쓰기 RLS·RPC 내부 검증에 사용.
+- `handle_new_user()` — 가입 트리거. 차단 이메일 거부 + profiles 생성(metadata의 nickname·full_name 저장, approved=false).
+- `admin_approve_member(p_user_id)` — 관리자가 성도 승인(approved=true). is_admin 검증. false→true 시 승인 메일 트리거.
+- `reserve_product(p_id)` / `cancel_reservation(p_id)` — 예약/취소. (내부에서 `is_approved()` 검증)
 - `set_sold_at()` — 판매완료 시각 트리거.
 - `get_or_create_conversation(p_product_id)` — 구매자가 대화방 생성/조회.
 - `on_message_insert()` — 메시지 삽입 시 대화방 요약·읽음 갱신 트리거.
 - `report_conversation(p_conv_id, p_reason)` — 참여자가 대화 신고(reported=true) + 관리자 알림.
 - `admin_resolve_chat(p_conv_id)` — 관리자가 신고 해제. (RLS UPDATE+RETURNING 충돌 회피용 전용 함수)
-- `admin_list_members()` — 관리자용 전체 성도 목록(이메일 포함).
+- `admin_list_members()` — 관리자용 전체 성도 목록(실명·이메일·approved 포함, 미승인 먼저 정렬).
 - `admin_list_reported_chats()` — 관리자용 신고된 대화 목록.
 - `cleanup_old_chats()` — 판매완료 7일 후 대화 삭제. **pg_cron으로 매일 04:00 실행** (`cron.schedule`).
 - `notify_*_webhook()` — products/reports/posts/messages 삽입 시 해당 Edge Function 호출(pg_net, `x-notify-secret` 헤더).
+- `notify_profiles_webhook()` — profiles INSERT(가입 승인 대기 알림) / approved false→true UPDATE(승인 완료 알림) → notify 함수 호출.
+
+> **RLS 요약(보안 개편 후)**: 읽기는 **로그인 우선** — products/posts/comments select = `auth.uid() is not null`(site_settings/categories만 공개). 쓰기(products·posts·comments·messages·favorites·reports·subscriptions insert, products update)는 **승인 필요** — `is_approved()` 조건 추가. 단 **본인 profiles UPDATE(알림 설정)는 승인 전에도 허용**. reserve/cancel/get_or_create_conversation/report_conversation RPC도 내부에서 `is_approved()` 검증.
 
 ### Storage
 - 버킷 `product-images` (public). 업로드 경로 `${user.id}/파일명`. 본인 폴더에만 업로드 가능(RLS).
@@ -114,9 +119,11 @@
 
 전부 `npm:@supabase/supabase-js@2` import, `verify_jwt: false`(자체 인증 처리).
 
-- **notify** — products/reports/posts 웹훅 수신.
+- **notify** — products/reports/posts/profiles 웹훅 수신.
   - A) 새 물품 → 구독자 이메일  B) 예약(판매중→예약중) → 판매자
   - C) 신고 접수 → 관리자 전체  D) 공지(notify=true) → 수신동의 성도 전체
+  - E) 새 가입(profiles INSERT) → 관리자 전체("가입 승인 대기: 실명/닉네임")
+  - F) 승인 완료(approved false→true) → 해당 성도("승인 완료, 이제 이용 가능")
   - `NOTIFY_SECRET` 헤더 검증. Brevo로 발송.
 - **notify-chat** — messages/채팅신고 웹훅 수신.
   - 새 메시지 → 상대방에게 알림(단, **상대가 직전에 이미 읽은 상태였을 때만 1통**. 안 읽은 게 쌓여있으면 재발송 안 함)
@@ -183,10 +190,12 @@ git add -A && git commit -m "설명" && git push
 - 2차: 게시판(공지/자유/후기, 댓글, 공지 이메일), 사이트 문구 편집, 성도 관리(강제탈퇴·재가입차단), 가입 후 알림 온보딩.
 - 3차: 1:1 채팅(Realtime, 안읽음 배지, 첫 메시지만 이메일, 신고 시 관리자 열람, 7일 후 자동삭제).
 - 4차: 관리자 전체화면 뷰 개편(좌측 사이드바/모바일 가로 탭), 판매내역 섹션(과거기록 `legacy`·CSV 내보내기), **커스텀 도메인 `hanmaeumcarote.com` 연결**(Cloudflare DNS only→Netlify) + Brevo 도메인 인증(SPF/DKIM).
+- 5차: **보안 개편** — 가입 승인제(`approved`·실명 `full_name`·`admin_approve_member`), 로그인 우선 랜딩(비로그인 랜딩·읽기 RLS `auth.uid() is not null`), 쓰기 RLS·RPC에 `is_approved()`, 승인 대기 화면, 관리자 승인 UI(대기 강조·승인 버튼), 가입 대기·승인 완료 이메일(notify E/F), "로그인 상태 유지" 세션 옵션(sessionStorage 어댑터), 딥링크 로그인 후 이어열기, 이메일 인증 안내·재발송.
 
 ### 알려진 한계 (의도적 결정)
-- 가입 시 이메일 인증 OFF → 남의 이메일로 가입 가능(강제탈퇴+차단으로 대응). CAPTCHA 없음.
-- 재가입 차단은 이메일 기준(다른 이메일로는 재가입 가능).
+- **가입 승인제로 1차 방어**: 아무나 가입해도 관리자 승인 전엔 읽기만 가능(쓰기·예약·채팅·게시 전부 RLS 차단). 승인 없이는 실질 이용 불가.
+- 이메일 인증(Confirm email)은 **배포 후 사용자가 대시보드에서 켤 예정**. 꺼진 상태에서도 프런트가 깨지지 않게 처리됨(켜면 가입 후 인증 안내 화면 + 재발송 동작). CAPTCHA 없음.
+- 재가입 차단은 이메일 기준(다른 이메일로는 재가입 가능). 강제 탈퇴(=거절)+차단은 기존 흐름 재사용.
 - Supabase Auth "유출된 비밀번호 방지"(HaveIBeenPwned) — 켜기 권장(요금제 제한 가능).
 
 ---

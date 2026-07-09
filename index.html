@@ -524,15 +524,60 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
 </header>
 <div class="awning" aria-hidden="true"></div>
 
+<!-- ═══════════════ 로그인 우선 랜딩 (비로그인) ═══════════════ -->
+<section id="landing" class="gate hidden">
+  <div class="gate-card">
+    <div class="gate-logo"><svg viewBox="40 22 90 128" aria-hidden="true"><ellipse cx="66" cy="52" rx="8" ry="17" fill="#3E7C4F" transform="rotate(-32 66 52)"/><ellipse cx="85" cy="49" rx="8" ry="19" fill="#4C9260"/><ellipse cx="104" cy="52" rx="8" ry="17" fill="#3E7C4F" transform="rotate(32 104 52)"/><path d="M52 78 C49 102 60 126 77 139 C81 145 89 145 93 139 C110 126 121 102 118 78 C117 70 112 66 106 67 C97 69 92 72 85 72 C78 72 73 69 64 67 C58 66 53 70 52 78 Z" fill="#E8641B"/><path d="M66 96 q5 4 10 5 M64 111 q5 4 10 5 M71 126 q4 3 8 4" stroke="#C24E12" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="81" y="83" width="8" height="38" rx="4" fill="#FDFBF6"/><rect x="70" y="94" width="30" height="8" rx="4" fill="#FDFBF6"/></svg></div>
+    <h2 class="gate-title">한마음 <em>CAROTE</em></h2>
+    <p class="gate-sub">mercatino della chiesa · Milano</p>
+    <p class="gate-desc">밀라노 한마음교회 성도들과 함께하는 사랑나눔 장터예요.<br/>
+      <b>안전을 위해 로그인한 성도만 이용할 수 있어요.</b><br/>
+      로그인하거나, 처음이라면 가입 후 관리자 승인을 받아주세요.</p>
+    <div class="gate-actions">
+      <button class="btn btn-primary btn-block btn-lg" onclick="openAuth('login')">로그인</button>
+      <button class="btn btn-ghost btn-block" onclick="openAuth('signup')">회원가입</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 가입 승인 대기 (로그인·미승인) ═══════════════ -->
+<section id="waitingScreen" class="gate hidden">
+  <div class="gate-card">
+    <div class="gate-logo gate-emoji">⏳</div>
+    <h2 class="gate-title">가입 승인 대기 중이에요</h2>
+    <p class="gate-desc">관리자가 가입 신청을 확인하고 있어요.<br/>
+      승인이 완료되면 등록하신 <b>이메일로 알려드릴게요.</b><br/>
+      조금만 기다려 주세요 🙏</p>
+    <div class="gate-actions">
+      <button class="btn btn-ghost btn-block" onclick="doLogout()">로그아웃</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 이메일 인증 안내 (가입 후·이메일 확인 켜진 경우) ═══════════════ -->
+<section id="emailCheckScreen" class="gate hidden">
+  <div class="gate-card">
+    <div class="gate-logo gate-emoji">📬</div>
+    <h2 class="gate-title">인증 메일을 보냈어요</h2>
+    <p class="gate-desc"><b id="emailCheckAddr"></b> 주소로 인증 메일을 보냈어요.<br/>
+      <b>메일함(스팸함 포함)</b>을 확인하고 링크를 눌러 인증을 완료해주세요.<br/>
+      인증 후 로그인하면 관리자 승인을 거쳐 이용할 수 있어요.</p>
+    <div class="gate-actions">
+      <button class="btn btn-soft btn-block" id="resendBtn" onclick="resendConfirm()">인증 메일 다시 보내기</button>
+      <button class="btn btn-ghost btn-block" onclick="showLanding()">로그인 화면으로</button>
+    </div>
+  </div>
+</section>
+
 <!-- ═══════════════ 장터 / 게시판 전환 ═══════════════ -->
-<nav class="view-tabs">
+<nav class="view-tabs hidden">
   <button id="vtMarket" class="on" onclick="switchView('market')">🥕 장터</button>
   <button id="vtBoard" onclick="switchView('board')">💬 게시판</button>
 </nav>
 <button class="notice-strip hidden" id="noticeStrip"></button>
 
 <!-- ═══════════════ 사랑나눔 현황 ═══════════════ -->
-<section class="ledger-wrap">
+<section class="ledger-wrap hidden">
   <div class="ledger">
     <div>
       <div class="eyebrow" id="bannerEyebrow">offerta d'amore ♡</div>
@@ -546,7 +591,7 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
 </section>
 
 <!-- ═══════════════ MARKET ═══════════════ -->
-<main id="market-top">
+<main id="market-top" class="hidden">
   <div class="toolbar">
     <div class="searchbox">
       <input type="text" id="searchInput" placeholder="찾으시는 물품이 있나요?" autocomplete="off" />
@@ -703,8 +748,14 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
         <input type="email" id="loginEmail" required autocomplete="email" placeholder="email@example.com" /></div>
       <div class="field"><label>비밀번호</label>
         <div class="pwwrap"><input type="password" id="loginPw" required autocomplete="current-password" placeholder="••••••" /><button type="button" class="pw-eye" onclick="togglePw('loginPw', this)" aria-label="비밀번호 표시">👁️</button></div></div>
+      <label class="check-row" style="margin:2px 0 6px">
+        <span style="font-size:13px">로그인 상태 유지</span>
+        <input type="checkbox" id="keepLogin" checked />
+      </label>
       <div class="form-error" id="loginError"></div>
       <button class="btn btn-primary btn-block" type="submit">로그인</button>
+      <p style="font-size:11px;color:var(--muted);font-weight:600;margin-top:8px;line-height:1.6">
+        🔒 공용 기기에서는 체크를 해제하고, 사용 후 꼭 로그아웃해주세요.</p>
       <button class="btn btn-block" type="button" onclick="sendReset()"
         style="color:var(--muted);font-size:12.5px;margin-top:4px">비밀번호를 잊으셨나요?</button>
     </form>
@@ -712,6 +763,9 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
     <form id="signupForm" class="hidden" onsubmit="doSignup(event)">
       <div class="field"><label>닉네임 (교회에서 부르는 이름)</label>
         <input type="text" id="suNick" required maxlength="20" placeholder="예) 요셉, 김집사" /></div>
+      <div class="field"><label>이름 (실명)</label>
+        <input type="text" id="suName" required maxlength="40" placeholder="예) 홍길동" />
+        <div class="hint">🔒 관리자 승인 확인용이에요. 다른 성도에게는 보이지 않아요.</div></div>
       <div class="field"><label>이메일</label>
         <input type="email" id="suEmail" required autocomplete="email" placeholder="email@example.com" />
         <div class="hint">예약·알림 소식을 받을 이메일이에요.</div></div>
@@ -845,6 +899,26 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
 .stat-box{ flex:1; min-width:100px; background:var(--butter); border-radius:14px; padding:12px 14px; }
 .stat-box .n{ font-size:19px; font-weight:800; font-variant-numeric:tabular-nums; }
 .stat-box .l{ font-size:11px; color:var(--muted); font-weight:700; }
+
+/* ── 로그인 우선 랜딩 / 승인 대기 / 이메일 인증 게이트 ── */
+.gate{ max-width:500px; margin:44px auto; padding:0 20px; }
+.gate-card{ background:var(--card); border:1.5px solid var(--line); border-radius:24px;
+  padding:42px 30px; text-align:center; box-shadow:0 12px 34px rgba(38,32,26,.07); }
+.gate-logo{ width:90px; height:118px; margin:0 auto 12px; }
+.gate-logo svg{ width:100%; height:100%; display:block; }
+.gate-logo.gate-emoji{ height:auto; font-size:60px; line-height:1.2; }
+.gate-title{ font-size:26px; margin-bottom:4px; }
+.gate-title em{ color:var(--carrot); font-style:normal; }
+.gate-sub{ font-family:var(--font-hand); font-size:15px; color:var(--muted); font-weight:600; margin-bottom:18px; }
+.gate-desc{ font-size:14px; color:var(--muted); font-weight:600; line-height:1.85; margin-bottom:24px; }
+.gate-desc b{ color:var(--ink); }
+.gate-actions{ display:flex; flex-direction:column; gap:8px; }
+.btn-lg{ padding:14px; font-size:15px; }
+.rowitem.pending{ background:#FFF7EA; box-shadow:inset 3px 0 0 var(--carrot); }
+.pending-tag{ background:var(--carrot); color:#fff; font-size:10px; font-weight:800;
+  padding:2px 7px; border-radius:8px; margin-left:4px; vertical-align:middle; }
+.mini-btn.approve{ background:var(--leaf-soft); color:var(--leaf); font-weight:800; }
+.mini-btn.approve:hover{ background:#d4e8d9; }
 
 /* ── 관리자 전체화면 뷰 ── */
 #admin-top{ max-width:980px; }
@@ -1273,6 +1347,7 @@ function closeModal(id){
 }
 function goHome(){
   history.replaceState({}, "", location.pathname);
+  if (!isReady()){ renderGate(); window.scrollTo({ top: 0 }); return; }
   switchView("market");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -1289,48 +1364,39 @@ async function init(){
     showGridError("페이지 구성요소를 불러오지 못했어요. 새로고침해 주세요.");
     return;
   }
-  db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // 세션 저장 위치 어댑터: "로그인 상태 유지" 해제 시 sessionStorage(브라우저 닫으면 로그아웃)
+  const authStorage = {
+    getItem: (k) => sessionStorage.getItem(k) ?? localStorage.getItem(k),
+    setItem: (k, v) => {
+      if (localStorage.getItem("hmc_session_only") === "1"){
+        sessionStorage.setItem(k, v); localStorage.removeItem(k);
+      } else {
+        localStorage.setItem(k, v); sessionStorage.removeItem(k);
+      }
+    },
+    removeItem: (k) => { sessionStorage.removeItem(k); localStorage.removeItem(k); },
+  };
+  db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { storage: authStorage, persistSession: true, autoRefreshToken: true },
+  });
+
+  captureDeepLink();   // 로그인 전에도 ?id/?post/?chat 보관 → 로그인·승인 후 이어서 열기
 
   db.auth.onAuthStateChange((event, s) => {
     session = s;
     if (event === "PASSWORD_RECOVERY") openModal("pwResetModal");
     // 주의: 이 콜백 안에서 직접 await로 DB를 조회하면 supabase-js 내부
     // 잠금이 풀리지 않아 앱 전체가 멈춥니다. setTimeout으로 잠금 밖에서 실행.
-    setTimeout(async () => {
-      if (event === "SIGNED_IN" || event === "INITIAL_SESSION"){
-        if (s){ await loadProfile(); await loadFavs(); }
-        renderHeader();
-        if (products.length) renderGrid();
-        if (s && profile && profile.notify_setup_done === false) openNotify(true);
-        if (s) refreshChatUnread();
-      }
-      if (event === "SIGNED_OUT"){
-        profile = null; myFavs = new Set();
-        chatUnread = 0; teardownChatList();
-        renderHeader(); renderGrid();
-      }
-    }, 0);
+    setTimeout(() => handleAuthChange(event, s), 0);
   });
 
-  const { data } = await db.auth.getSession();
-  session = data.session;
-  if (session) await loadProfile();
-  renderHeader();
+  // 공개 데이터(카테고리·문구)는 로그인과 무관하게 로드.
+  await Promise.all([loadCategories(), loadSettings()]);
 
-  await Promise.all([loadCategories(), loadProducts(), loadSettings(), loadPosts()]);
-  if (session) await refreshChatUnread();
-
-  // 딥링크(?id=... 물품 / ?post=... 게시글) 자동 열기
-  const qs = new URLSearchParams(location.search);
-  const sharedId = qs.get("id");
-  if (sharedId && products.some(p => p.id === sharedId)) openDetail(sharedId);
-  const sharedPost = qs.get("post");
-  if (sharedPost && posts.some(p => p.id === sharedPost)){
-    switchView("board");
-    openPostView(sharedPost);
-  }
-  const sharedChat = qs.get("chat");
-  if (sharedChat && session) openChatById(sharedChat);
+  // 초기 상태 확정 렌더 (INITIAL_SESSION 이벤트에 의존하지 않음)
+  const { data: sess } = await db.auth.getSession();
+  session = sess.session;
+  await revealForSession();
 
   // 검색 / 새로고침 / 스크롤탑
   $("searchInput").addEventListener("input", e => { searchTerm = e.target.value; renderGrid(); });
@@ -1345,6 +1411,89 @@ async function init(){
   $("bpImgInput").addEventListener("change", e => addBpFiles(e.target.files));
 }
 
+/* ─────────────────────────────── 접근 게이트 (로그인·승인) ── */
+let pendingDeepLink = null;
+
+function isReady(){ return !!session && !!profile && profile.approved === true; }
+
+async function handleAuthChange(event, s){
+  if (event === "SIGNED_OUT"){
+    profile = null; myFavs = new Set(); products = []; posts = [];
+    chatUnread = 0; teardownChatList();
+    renderHeader(); renderGrid(); renderGate();
+    return;
+  }
+  if (event !== "SIGNED_IN") return;   // INITIAL_SESSION 등은 init 본체에서 처리
+  await revealForSession();
+}
+
+// 로그인 세션 기준으로 프로필 로드 → 게이트 렌더 → (승인 시) 데이터/온보딩/딥링크
+async function revealForSession(){
+  if (session) await loadProfile();
+  renderHeader();
+  renderGate();
+  if (isReady()){
+    if (!products.length || !posts.length)
+      await Promise.all([loadProducts(), loadPosts()]);
+    await loadFavs();
+    renderGrid();
+    refreshChatUnread();
+    if (profile.notify_setup_done === false) openNotify(true);
+    openPendingDeepLink();
+  }
+}
+
+function hideAppChrome(){
+  document.querySelector(".view-tabs").classList.add("hidden");
+  document.querySelector(".ledger-wrap").classList.add("hidden");
+  $("market-top").classList.add("hidden");
+  $("board-top").classList.add("hidden");
+  $("noticeStrip").classList.add("hidden");
+  $("admin-top").classList.add("hidden");
+}
+
+// 로그인·승인 상태에 따라 랜딩 / 승인 대기 / 정상 앱 중 하나만 노출
+function renderGate(){
+  $("emailCheckScreen").classList.add("hidden");
+  if (isReady()){
+    $("landing").classList.add("hidden");
+    $("waitingScreen").classList.add("hidden");
+    switchView(boardView || "market");    // view-tabs·장터·배너 복원
+    return;
+  }
+  hideAppChrome();
+  const loggedIn = !!session;
+  $("landing").classList.toggle("hidden", loggedIn);         // 미로그인 → 랜딩
+  $("waitingScreen").classList.toggle("hidden", !loggedIn);  // 로그인·미승인 → 대기
+}
+
+function showEmailCheck(email){
+  $("emailCheckAddr").textContent = email;
+  $("landing").classList.add("hidden");
+  $("waitingScreen").classList.add("hidden");
+  hideAppChrome();
+  $("emailCheckScreen").classList.remove("hidden");
+}
+function showLanding(){
+  $("emailCheckScreen").classList.add("hidden");
+  renderGate();
+}
+
+function captureDeepLink(){
+  const qs = new URLSearchParams(location.search);
+  const id = qs.get("id"), post = qs.get("post"), chat = qs.get("chat");
+  if (id) pendingDeepLink = { type: "id", val: id };
+  else if (post) pendingDeepLink = { type: "post", val: post };
+  else if (chat) pendingDeepLink = { type: "chat", val: chat };
+}
+function openPendingDeepLink(){
+  if (!pendingDeepLink) return;
+  const d = pendingDeepLink; pendingDeepLink = null;
+  if (d.type === "id" && products.some(p => p.id === d.val)) openDetail(d.val);
+  else if (d.type === "post" && posts.some(p => p.id === d.val)){ switchView("board"); openPostView(d.val); }
+  else if (d.type === "chat") openChatById(d.val);
+}
+
 async function refresh(){
   $("refreshBtn").style.transform = "rotate(360deg)";
   $("refreshBtn").style.transition = "transform .5s";
@@ -1356,7 +1505,7 @@ async function refresh(){
 /* ─────────────────────────────────────────── data load ── */
 async function loadProfile(){
   const { data, error } = await db.from("profiles")
-    .select("id, nickname, is_admin, notice_email, notify_setup_done").eq("id", session.user.id).maybeSingle();
+    .select("id, nickname, is_admin, notice_email, notify_setup_done, approved").eq("id", session.user.id).maybeSingle();
   if (!error) profile = data;
 }
 
@@ -1399,6 +1548,11 @@ function renderHeader(){
     el.innerHTML = `
       <button class="btn btn-ghost" onclick="openAuth('login')">로그인</button>
       <button class="btn btn-primary" onclick="openAuth('signup')">🥕 시작하기</button>`;
+    return;
+  }
+  if (!profile.approved){
+    // 미승인: 물품 올리기·채팅 숨김, 로그아웃만
+    el.innerHTML = `<button class="btn btn-ghost" onclick="doLogout()">로그아웃</button>`;
     return;
   }
   const initial = esc((profile.nickname || "성")[0]);
@@ -1745,6 +1899,7 @@ function renderMembers(){
   const list = q
     ? members.filter(m =>
         (m.nickname ?? "").toLowerCase().includes(q) ||
+        (m.full_name ?? "").toLowerCase().includes(q) ||
         (m.email ?? "").toLowerCase().includes(q))
     : members;
   const el = $("memberList");
@@ -1752,25 +1907,36 @@ function renderMembers(){
     el.innerHTML = `<div class="empty" style="padding:14px 0">해당하는 성도가 없어요.</div>`;
     return;
   }
+  // admin_list_members 가 미승인(approved=false) 먼저 정렬해서 반환 → 상단 강조
   el.innerHTML = list.map(m => {
     const joined = new Date(m.created_at).toLocaleDateString("ko-KR",
       { year: "2-digit", month: "numeric", day: "numeric" });
     const isMe = profile && m.id === profile.id;
+    const pending = !m.approved;
     return `
-    <div class="rowitem">
+    <div class="rowitem${pending ? " pending" : ""}">
       <div class="rmain" style="cursor:default">
         <div class="rname">${esc(m.nickname)}
-          ${m.is_admin ? `<span style="color:var(--carrot);font-size:10.5px">관리자</span>` : ""}</div>
-        <div class="rsub">${esc(m.email ?? "")} · ${joined} 가입 · 물품 ${m.product_count}개</div>
+          ${m.is_admin ? `<span style="color:var(--carrot);font-size:10.5px">관리자</span>` : ""}
+          ${pending ? `<span class="pending-tag">승인 대기</span>` : ""}</div>
+        <div class="rsub">${m.full_name ? `<b>실명 ${esc(m.full_name)}</b> · ` : ""}${esc(m.email ?? "")} · ${joined} 가입 · 물품 ${m.product_count}개</div>
       </div>
       <div class="racts">
+        ${pending && !isMe ? `<button class="mini-btn approve" onclick="approveMember('${m.id}')">승인</button>` : ""}
         ${m.is_admin || isMe
           ? `<span class="mini-btn" style="cursor:default;opacity:.4">보호됨</span>`
           : `<button class="mini-btn danger"
-               onclick="openKick('${m.id}', ${JSON.stringify(m.nickname)})">강제 탈퇴</button>`}
+               onclick="openKick('${m.id}', ${JSON.stringify(m.nickname)})">${pending ? "거절" : "강제 탈퇴"}</button>`}
       </div>
     </div>`;
   }).join("");
+}
+
+async function approveMember(id){
+  const { error } = await db.rpc("admin_approve_member", { p_user_id: id });
+  if (error){ toast("승인에 실패했어요", "err"); return; }
+  toast("승인했어요. 안내 메일을 보냈어요 ✉️");
+  await loadMembers();
 }
 
 function openKick(id, name){
@@ -2387,17 +2553,21 @@ function switchAuthTab(tab){
 async function doLogin(e){
   e.preventDefault();
   $("loginError").textContent = "";
+  // "로그인 상태 유지" 해제 → 세션을 sessionStorage에만 저장 (signIn 전에 플래그 설정)
+  if ($("keepLogin").checked) localStorage.removeItem("hmc_session_only");
+  else localStorage.setItem("hmc_session_only", "1");
   const { error } = await db.auth.signInWithPassword({
     email: $("loginEmail").value.trim(), password: $("loginPw").value });
   if (error){
     $("loginError").textContent =
-      /confirm/i.test(error.message) ? "이메일 인증이 필요해요. 메일함을 확인해주세요."
-                                     : "이메일 또는 비밀번호가 올바르지 않아요.";
+      /confirm|not confirmed/i.test(error.message)
+        ? "이메일 인증이 필요해요. 메일함(스팸함 포함)을 확인해주세요."
+        : "이메일 또는 비밀번호가 올바르지 않아요.";
     return;
   }
   closeModal("authModal");
   toast("어서 오세요!");
-  loadProducts();
+  // 이후 흐름(승인 대기/정상 앱 전환)은 handleAuthChange 가 처리
 }
 
 async function doSignup(e){
@@ -2406,10 +2576,11 @@ async function doSignup(e){
   if ($("suPw").value !== $("suPw2").value){
     $("signupError").textContent = "비밀번호가 서로 달라요."; return;
   }
+  const email = $("suEmail").value.trim();
   const { data, error } = await db.auth.signUp({
-    email: $("suEmail").value.trim(),
+    email,
     password: $("suPw").value,
-    options: { data: { nickname: $("suNick").value.trim() } },
+    options: { data: { nickname: $("suNick").value.trim(), full_name: $("suName").value.trim() } },
   });
   if (error){
     $("signupError").textContent =
@@ -2417,13 +2588,25 @@ async function doSignup(e){
                                      : "가입에 실패했어요: " + error.message;
     return;
   }
+  closeModal("authModal");
   if (data.session){
-    closeModal("authModal");
-    toast("가입을 환영해요!");
+    // 이메일 확인 OFF → 바로 로그인됨 → handleAuthChange 가 승인 대기 화면으로 안내
+    toast("가입 완료! 관리자 승인을 기다려주세요 🙏");
   } else {
-    closeModal("authModal");
-    toast("확인 메일을 보냈어요! 메일함에서 인증해주세요.");
+    // 이메일 확인 ON → 세션 없음 → 인증 안내 화면
+    showEmailCheck(email);
   }
+}
+
+async function resendConfirm(){
+  const email = $("emailCheckAddr").textContent;
+  if (!email) return;
+  const btn = $("resendBtn");
+  btn.disabled = true; btn.textContent = "보내는 중…";
+  const { error } = await db.auth.resend({ type: "signup", email });
+  btn.disabled = false; btn.textContent = "인증 메일 다시 보내기";
+  toast(error ? "발송에 실패했어요. 잠시 후 다시 시도해주세요." : "인증 메일을 다시 보냈어요!",
+        error ? "err" : "ok");
 }
 
 async function sendReset(){
