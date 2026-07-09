@@ -1,0 +1,48 @@
+<!-- Supabase Auth 템플릿: Confirm signup (회원가입 이메일 인증) -->
+<!-- 제목(Subject): 🥕 [한마음 CAROTE] 이메일 인증을 완료해주세요 -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0;padding:0;background:#FBF1E4;">
+  <tr>
+    <td align="center" style="padding:32px 12px;">
+      <table role="presentation" width="480" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:480px;background:#FDFBF6;border:1px solid #EDE5D8;border-radius:20px;overflow:hidden;">
+        <tr>
+          <td style="padding:36px 32px;font-family:'Apple SD Gothic Neo','Malgun Gothic','Segoe UI',sans-serif;color:#26201a;">
+
+            <div style="font-size:22px;font-weight:800;color:#E8641B;letter-spacing:-0.5px;margin:0 0 24px;">🥕 한마음 CAROTE</div>
+
+            <h1 style="font-size:20px;font-weight:800;color:#26201a;line-height:1.4;margin:0 0 14px;">이메일 인증을 완료해주세요</h1>
+
+            <p style="font-size:15px;line-height:1.75;color:#26201a;margin:0 0 24px;">
+              한마음 CAROTE에 오신 것을 환영해요! 아래 버튼을 눌러 이메일 인증을 완료해주세요.
+            </p>
+
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 22px;">
+              <tr>
+                <td style="border-radius:999px;background:#e8641b;">
+                  <a href="{{ .ConfirmationURL }}" target="_blank"
+                     style="display:inline-block;padding:12px 28px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:999px;">이메일 인증하기</a>
+                </td>
+              </tr>
+            </table>
+
+            <p style="font-size:13px;line-height:1.7;color:#8a7f70;margin:0 0 8px;">
+              인증 후에는 관리자 승인을 거쳐 이용하실 수 있어요. 승인이 완료되면 이메일로 알려드립니다.
+            </p>
+            <p style="font-size:13px;line-height:1.7;color:#8a7f70;margin:0 0 18px;">
+              본인이 가입하지 않았다면 이 메일은 무시해주세요.
+            </p>
+
+            <p style="font-size:12px;line-height:1.6;color:#8a7f70;margin:0;word-break:break-all;">
+              버튼이 눌리지 않으면 아래 주소를 복사해 붙여넣어주세요:<br />
+              <a href="{{ .ConfirmationURL }}" target="_blank" style="color:#C94F10;">{{ .ConfirmationURL }}</a>
+            </p>
+
+            <div style="border-top:1px solid #EDE5D8;margin:26px 0 0;padding-top:16px;">
+              <p style="font-size:12px;color:#8a7f70;margin:0;">밀라노 한마음교회 사랑나눔 바자회 · hanmaeumcarote.com</p>
+            </div>
+
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
