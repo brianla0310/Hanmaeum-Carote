@@ -434,6 +434,14 @@ main{ max-width:1180px; margin:0 auto; padding:30px 20px 80px; }
 }
 .seg button{ flex:1; font-size:12px; font-weight:700; padding:8px 4px; border-radius:999px; color:var(--muted); }
 .seg button.on{ background:#fff; color:var(--ink); box-shadow:0 2px 6px rgba(60,40,20,.12); }
+.manage-hint{ font-size:11.5px; color:var(--muted); font-weight:600; line-height:1.6;
+  background:var(--butter); border-radius:10px; padding:9px 12px; margin-bottom:10px; }
+.manage-hint b{ color:var(--ink); }
+.status-set{ display:flex; flex-direction:column; gap:7px; margin-bottom:12px; }
+.status-set button{ width:100%; text-align:center; padding:11px; border-radius:12px;
+  border:1.5px solid var(--line); background:var(--card); font-weight:700; font-size:13.5px; color:var(--ink); }
+.status-set button:hover{ border-color:var(--carrot); }
+.status-set button.on{ background:var(--carrot-soft); border-color:var(--carrot); color:var(--carrot-deep); cursor:default; }
 
 /* ============================================================
    List rows (내 물품 / 관리자)
@@ -3267,14 +3275,20 @@ function renderDetailActions(p){
 
   // ── 상태 변경: 판매자 본인만 (관리자는 판매내역의 '상태 정정'으로)
   if (isMine){
-    if (p.status === "예약중")
-      html += `<div class="d-note">🧡 <b>${esc(p.reserver?.nickname ?? "성도")}</b>님이 예약하셨어요.
-        거래가 끝나면 <b>판매완료</b>로 바꿔주세요.</div>`;
-    html += `<div class="manage-row">
-      <div class="seg">
-        ${["판매중","예약중","판매완료"].map(s =>
-          `<button class="${p.status === s ? "on" : ""}" onclick="setStatus('${p.id}','${s}')">${s}</button>`).join("")}
-      </div>
+    // 예약중 구분: 구매자가 예약한 경우 vs 판매자가 직접 표시한 경우(reserved_by 없음)
+    if (p.status === "예약중"){
+      html += p.reserved_by
+        ? `<div class="d-note">🧡 <b>${esc(p.reserver?.nickname ?? "성도")}</b>님이 예약하셨어요.
+            거래가 끝나면 <b>판매완료로 표시</b>해주세요.</div>`
+        : `<div class="d-note">📌 직접 <b>예약중</b>으로 표시해두셨어요. (예약한 성도 정보는 없어요)</div>`;
+    }
+    const statusLabel = { "판매중": "판매중으로 되돌리기", "예약중": "예약중으로 표시", "판매완료": "판매완료로 표시" };
+    html += `<div class="manage-hint">📌 내 물품의 <b>상태 표시</b>예요. 교회에서 직접 약속한 경우
+      <b>'예약중으로 표시'</b>를 눌러 다른 성도의 헛걸음을 막아주세요.</div>
+    <div class="status-set">
+      ${["판매중","예약중","판매완료"].map(s =>
+        `<button class="${p.status === s ? "on" : ""}" onclick="setStatus('${p.id}','${s}')">${
+          statusLabel[s]}${p.status === s ? " · 지금 상태" : ""}</button>`).join("")}
     </div>`;
   }
   // ── 수정 / 인기(관리자) / 삭제: 판매자·관리자
