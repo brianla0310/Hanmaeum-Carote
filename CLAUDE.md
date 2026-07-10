@@ -72,10 +72,11 @@
 ## DB 스키마 (public)
 
 ### 테이블
-- **profiles** `(id, nickname, full_name, email, is_admin, approved, notice_email, notify_setup_done)`
+- **profiles** `(id, nickname, full_name, email, is_admin, approved, notice_email, notify_setup_done, joined_via)`
   - `email`·`full_name` 컬럼은 일반 grant 차단(관리자 함수로만 조회 — PII). 가입 시 `handle_new_user` 트리거로 생성.
   - `full_name`: 실명(관리자 승인 확인용, 다른 성도엔 비노출). `approved`: 관리자 승인 여부(기본 false, 기존 회원 전원 true).
   - `notice_email`: 공지 이메일 수신 동의(기본 false). `notify_setup_done`: 가입 후 알림 온보딩 완료 여부.
+  - `joined_via`: 가입 경로 `email|google|invite`(기본 'email', handle_new_user가 provider로 분기, 주보 초대 가입은 edge에서 'invite').
 - **categories** `(id, name, emoji, ...)` — 7개 시드. 무료나눔은 카테고리 아님(price=0이면 💚 무료나눔).
 - **products** `(id, name, price, status, description, images[], is_hot, seller_id, reserved_by, sold_at, donated_at, created_at, category_id, legacy)`
   - status: `판매중 | 예약중 | 판매완료`. `seller_id` nullable(탈퇴 익명화용).
@@ -85,7 +86,8 @@
 - **subscriptions** `(id, user_id, category_id)` — category_id NULL = 전체 알림.
 - **favorites** `(user_id, product_id)` PK 복합. RLS 본인만.
 - **reports** `(id, product_id, reporter_id, reason, detail, created_at)` — unique(product_id, reporter_id).
-- **site_settings** `(key, value)` — 배너/푸터 문구·모금 목표. 관리자만 쓰기. keys: `banner_eyebrow, banner_label, footer_hand, footer_text, goal_enabled('true'/'false'), goal_amount(숫자 문자열)`.
+- **site_settings** `(key, value)` — 배너/푸터 문구·모금 목표·주보 초대. 관리자만 쓰기. keys: `banner_eyebrow, banner_label, footer_hand, footer_text, goal_enabled('true'/'false'), goal_amount(숫자 문자열), invite_enabled('true'/'false'), invite_code(랜덤 12자)`.
+  - **invite_code 는 공개 SELECT 차단**(RLS `settings_select`: `key<>'invite_code' or is_admin()`) — 관리자만 조회. 나머지 키는 공개. 프런트는 `invite_status(code)` RPC로 코드 노출 없이 유효성만 확인.
 - **banned_emails** `(email, reason, created_at)` — 재가입 차단. 관리자만.
 - **posts** `(id, board, title, content, images[], author_id, product_id, notify, created_at, updated_at)`
   - board: `notice | free | review`. 공지는 관리자만. 후기(review)는 판매완료 후 7일 이내 구매자만, 물품당 1개(unique index).
@@ -99,8 +101,10 @@
 
 ### 함수 (RPC / 트리거)
 - `is_admin()` / `is_approved()` — 관리자·승인 여부. SECURITY DEFINER STABLE. 쓰기 RLS·RPC 내부 검증에 사용.
-- `handle_new_user()` — 가입 트리거. 차단 이메일 거부 + profiles 생성(approved=false). **full_name은 이메일 가입(provider=email)만 저장**, OAuth(google)는 null(→ 프론트 프로필 완성 모달). nickname은 metadata nickname→Google name→'성도' 순.
+- `handle_new_user()` — 가입 트리거. 차단 이메일 거부 + profiles 생성(approved=false). **full_name은 이메일 가입(provider=email)만 저장**, OAuth(google)는 null(→ 프론트 프로필 완성 모달). nickname은 metadata nickname→Google name→'성도' 순. `joined_via`=provider('email'/'google').
 - `admin_approve_member(p_user_id)` — 관리자가 성도 승인(approved=true). is_admin 검증. false→true 시 승인 메일 트리거.
+- `admin_rotate_invite()` — 관리자 주보 초대 코드 교체(랜덤 12자 생성·저장·반환). is_admin 검증. `_gen_invite_code()`(정의자, 혼동문자 제외 31자 알파벳) 사용.
+- `invite_status(p_code)` — 초대 코드 유효성만 반환(invite_enabled='true' && code 일치). 정의자·anon 실행 허용, **코드는 노출 안 함**. 프런트 배지/만료 판단용.
 - `complete_profile(p_full_name, p_nickname)` — 본인 실명·닉네임 저장(구글 로그인 후 프로필 완성). full_name UPDATE 권한이 없어 정의자 함수로 처리.
 - `get_my_profile()` — 본인 프로필 조회(full_name·notif_seen_at 포함). full_name은 SELECT 차단이라 프론트 `loadProfile`이 이 RPC로 실명 유무를 판단.
 - `_add_notif(user,type,title,body,link_kind,link_id)` — 인앱 알림 생성 헬퍼(정의자).
@@ -114,7 +118,7 @@
 - `on_message_insert()` — 메시지 삽입 시 대화방 요약·읽음 갱신 트리거.
 - `report_conversation(p_conv_id, p_reason)` — 참여자가 대화 신고(reported=true) + 관리자 알림.
 - `admin_resolve_chat(p_conv_id)` — 관리자가 신고 해제. (RLS UPDATE+RETURNING 충돌 회피용 전용 함수)
-- `admin_list_members()` — 관리자용 전체 성도 목록(실명·이메일·approved 포함, 미승인 먼저 정렬).
+- `admin_list_members()` — 관리자용 전체 성도 목록(실명·이메일·approved·`joined_via` 포함, 미승인 먼저 정렬).
 - `admin_list_reported_chats()` — 관리자용 신고된 대화 목록.
 - `cleanup_old_chats()` — 판매완료 7일 후 대화 삭제 **+ 30일 지난 notifications 삭제**. **pg_cron으로 매일 04:00 실행** (`cron.schedule`).
 - `notify_*_webhook()` — products/reports/posts/messages 삽입 시 해당 Edge Function 호출(pg_net, `x-notify-secret` 헤더).
@@ -140,6 +144,7 @@
 - **notify-chat** — messages/채팅신고 웹훅 수신.
   - 새 메시지 → 상대방에게 알림(단, **상대가 직전에 이미 읽은 상태였을 때만 1통**. 안 읽은 게 쌓여있으면 재발송 안 함)
   - 대화 신고 → 관리자 전체.
+- **invite-signup** — 주보 QR 초대 가입(verify_jwt false, CORS). 입력 email/password/full_name/nickname/code. 검증: invite_enabled='true' && code 일치(불일치 403·사유 비노출) → banned 사전 체크(한국어) → `admin.createUser(email_confirm:true, metadata)` → profiles `approved=true, joined_via='invite'`. 중복 409, 짧은 비번 400. 성공 시 프런트가 signInWithPassword로 즉시 로그인.
 - **delete-account** — 본인 탈퇴. JWT 검증 후: 예약 해제 → 판매완료 익명화(seller_id=null, images=[]) → 나머지 물품 삭제 → **대화 삭제** → 스토리지 폴더 삭제 → 계정 삭제. CORS 포함.
 - **admin-remove-user** — 관리자 강제 탈퇴. 호출자 관리자 확인 → 관리자/본인 대상 거부 → (ban=true면 banned_emails 추가) → 대상 콘텐츠 정리(delete-account와 동일) → 계정 삭제.
 
@@ -158,7 +163,7 @@
 - 게시판: 공지 배너 + 카테고리 필터 + 글쓰기(사진 5장) + 글 상세(댓글).
 - 채팅: 목록 모달 / 채팅방 모달(Realtime, 신고 버튼, 비공개 안내) / 관리자 열람 모드.
 - 알림 설정 모달: 가입 직후 **필수 온보딩**(공지 이메일 + 카테고리별 물품 알림).
-- 관리자 모달: 통계 / 신고 물품 / 신고 채팅 / 성도 관리(강제탈퇴·차단) / 문구 / 카테고리.
+- 관리자 모달: 통계 / 신고 물품 / 신고 채팅 / 성도 관리(강제탈퇴·차단 + 🎟️ 주보 초대 링크 블록: 켜기·복사·새 코드 교체) / 문구 / 카테고리.
 - PWA: manifest + 아이콘. **서비스워커는 의도적으로 미사용**(stale 캐시 방지).
 
 **아이콘/브랜딩**: 당근+십자가 SVG. 팔레트 — 몸통 `#E8641B`, 결 `#C24E12`, 잎 `#3E7C4F`/`#4C9260`,
@@ -208,6 +213,7 @@ git add -A && git commit -m "설명" && git push
 - 8차: **실사용 긴급 수정 묶음** — 구글 로그인 GIS(`signInWithIdToken`+nonce, 카톡 등 실패 시 리다이렉트 폴백). [A]기부완료 단계(`donated_at`·`admin_set_donated`·판매내역 기부 토글·CSV 기부여부), [B]셀프예약 차단, [C]status 변경 판매자 전용(`enforce_status_change`+GUC, 관리자 `admin_set_status` 정정), [D]모바일 헤더(물품버튼 라벨·아이콘 44px·게시판 📋), [E]모바일 상세 스크롤(`overflow:hidden`→auto), [F]카카오톡 인앱(외부브라우저 배너·구글 안내·이미지 압축 폴백·IME `isComposing` 중복전송 가드).
 - 6차: **구글 로그인**(OAuth) — 인증 모달에 "구글로 계속하기"(+"또는 이메일로" 구분선), `signInWithOAuth({provider:'google', redirectTo:location.origin})`. OAuth 사용자는 실명이 없어 **프로필 완성 모달**(필수·닫기 불가, 승인 대기·온보딩보다 먼저)로 실명·닉네임 입력 → `complete_profile` RPC. `handle_new_user`가 provider별로 full_name 분기, `get_my_profile` RPC로 본인 full_name 판단, 승인 대기 알림 트리거를 INSERT(full_name 有)+full_name채움 UPDATE로 분기(이메일/OAuth 각 1회).
 - 9차: **장터 UI 다듬기** — 상세 이미지 전체화면 라이트박스(`#lightbox`, 검은배경·원본비율·좌우화살표·"n/N"카운터·스와이프, ✕/배경/뒤로가기 닫기, 핀치줌), ↻새로고침을 검색창 밖→정렬 옆 pill(`.sort-refresh`)로 이동(모바일 360px 검색창 잘림 해결), 검색 placeholder 이모지 제거("검색")·내부 렌즈 아이콘 제거.
+- 10차: **주보 QR 초대 가입** — 어르신용 주보 QR(`?invite=CODE`)로 접속 시 이메일 인증·관리자 승인 없이 즉시 가입·이용. DB(`profiles.joined_via`, `site_settings.invite_code/invite_enabled`, `admin_rotate_invite`/`invite_status` RPC, `settings_select`에서 invite_code 숨김), Edge Function `invite-signup`(코드 검증·admin.createUser·approved+invite), 프런트(회원가입 폼 🎟️ 배지/만료 안내, invite-signup→즉시 로그인→온보딩 직행), 관리자 성도관리 🎟️ 초대 블록(켜기/끄기·링크 복사·새 코드 교체·목록 🎟️), 인쇄용 QR(`docs/invite-qr.png` 당근색, `docs/make-invite-qr.py`). **초대는 기본 OFF** — 관리자가 성도 관리에서 켜야 동작.
 
 ### 수동 확인 대기 (실기기 필요 — 코드는 배포 완료)
 - **구글 GIS 로그인**: Client ID 반영·배포됨(2026-07-10). Google Cloud Console → 승인된 JavaScript 원본에 `https://hanmaeumcarote.com` 등록 필요. One Tap 실패 시 자동으로 리다이렉트 방식 폴백되므로 깨지진 않음.

@@ -751,6 +751,25 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
       <!-- 👥 성도 관리 -->
       <section class="admin-sec hidden" id="asec-members">
         <h2 class="admin-h">👥 성도 관리</h2>
+
+        <div class="invite-admin" id="inviteAdmin">
+          <h3 class="admin-sub" style="margin:0 0 6px">🎟️ 주보 초대 링크</h3>
+          <p class="admin-note" style="margin:0 0 12px">이 링크의 QR로 접속하면 이메일 인증·관리자 승인 없이
+            <b>바로 가입·이용</b>할 수 있어요. 어르신 대상 주보 QR용이에요.</p>
+          <label class="check-row" style="margin:0 0 12px">
+            <span>초대 링크 켜기</span>
+            <input type="checkbox" id="inviteOn" onchange="toggleInvite(this.checked)" />
+          </label>
+          <div class="invite-link-row">
+            <input type="text" id="inviteLink" class="admin-inp" readonly aria-label="초대 링크" />
+            <button class="btn btn-soft" onclick="copyInvite()">복사</button>
+          </div>
+          <button class="btn btn-block" style="color:var(--muted);font-size:12.5px"
+            onclick="rotateInvite()">🔄 새 코드로 교체</button>
+          <p class="admin-note" style="margin:8px 0 0">코드를 교체하면 QR도 새로 만들어 주보에 반영해야 해요.
+            기존 주보의 QR은 더 이상 동작하지 않아요.</p>
+        </div>
+
         <input type="text" id="memberSearch" class="admin-inp" placeholder="닉네임·이메일 검색"
           oninput="renderMembers()" style="width:100%;margin-bottom:10px" />
         <div class="rowlist" id="memberList">
@@ -849,6 +868,8 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
     </form>
 
     <form id="signupForm" class="hidden" onsubmit="doSignup(event)">
+      <div id="inviteBadge" class="invite-badge hidden">🎟️ 주보 초대 링크로 가입 중이에요<br/>인증 메일 없이 바로 시작할 수 있어요</div>
+      <div id="inviteExpired" class="invite-expired hidden">초대 링크가 만료됐어요.<br/>일반 가입으로 진행해주세요.</div>
       <div class="field"><label>닉네임 (교회에서 부르는 이름)</label>
         <input type="text" id="suNick" required maxlength="20" placeholder="예) 요셉, 김집사" /></div>
       <div class="field"><label>이름 (실명)</label>
@@ -1060,6 +1081,21 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
   padding:11px 13px; font-size:12px; color:var(--muted); font-weight:600; text-align:center;
   line-height:1.65; margin-bottom:2px; }
 .kakao-notice b{ color:var(--carrot-deep); }
+
+/* 🎟️ 주보 초대 가입 배지 / 만료 안내 */
+.invite-badge{ background:linear-gradient(135deg, #FFF3E4, #FBE7CF); border:1.5px solid var(--carrot);
+  border-radius:14px; padding:12px 14px; margin-bottom:16px; font-size:12.5px; font-weight:700;
+  color:var(--carrot-deep); line-height:1.6; text-align:center; }
+.invite-expired{ background:var(--butter); border:1.5px solid var(--line); border-radius:12px;
+  padding:11px 13px; margin-bottom:16px; font-size:12px; font-weight:600; color:var(--muted);
+  line-height:1.6; text-align:center; }
+
+/* 🎟️ 관리자: 주보 초대 링크 블록 */
+.invite-admin{ background:var(--butter); border:1.5px solid var(--line); border-radius:16px;
+  padding:16px 16px 14px; margin-bottom:20px; max-width:520px; }
+.invite-link-row{ display:flex; gap:8px; margin-bottom:10px; }
+.invite-link-row .admin-inp{ flex:1; min-width:0; font-size:12px; color:var(--muted); }
+.invite-admin .btn-block{ margin-top:2px; }
 
 /* ── 관리자 전체화면 뷰 ── */
 #admin-top{ max-width:980px; }
@@ -1600,6 +1636,7 @@ async function init(){
   const { data: sess } = await db.auth.getSession();
   session = sess.session;
   await revealForSession();
+  await applyInvite();   // 주보 QR ?invite → 회원가입 폼(배지) 자동 안내
 
   // 검색 / 새로고침 / 스크롤탑
   $("searchInput").addEventListener("input", e => { searchTerm = e.target.value; renderGrid(); });
@@ -1617,6 +1654,8 @@ async function init(){
 
 /* ─────────────────────────────── 접근 게이트 (로그인·승인) ── */
 let pendingDeepLink = null;
+let inviteCode = null;      // 주보 QR ?invite=CODE
+let inviteActive = false;   // 코드가 유효·활성일 때만 초대 가입 흐름
 
 function isReady(){ return !!session && !!profile && profile.approved === true; }
 
@@ -1703,6 +1742,23 @@ function captureDeepLink(){
   if (id) pendingDeepLink = { type: "id", val: id };
   else if (post) pendingDeepLink = { type: "post", val: post };
   else if (chat) pendingDeepLink = { type: "chat", val: chat };
+  const inv = (qs.get("invite") || "").trim();
+  if (inv) inviteCode = inv;
+}
+
+// 주보 QR로 들어온 미로그인 방문자: 코드 유효성 확인 후 회원가입 폼(배지/만료 안내)으로 안내
+async function applyInvite(){
+  if (!inviteCode || session) return;
+  let valid = false;
+  try {
+    const { data } = await db.rpc("invite_status", { p_code: inviteCode });
+    valid = data === true;
+  } catch (e){ valid = false; }
+  inviteActive = valid;
+  openAuth("signup");
+  $("inviteBadge").classList.toggle("hidden", !valid);
+  $("inviteExpired").classList.toggle("hidden", valid);
+  if (!valid) inviteCode = null;   // 만료·비활성 → 이후 제출은 일반 가입으로
 }
 function openPendingDeepLink(){
   if (!pendingDeepLink) return;
@@ -2270,6 +2326,7 @@ function renderMembers(){
     <div class="rowitem${pending ? " pending" : ""}">
       <div class="rmain" style="cursor:default">
         <div class="rname">${esc(m.nickname)}
+          ${m.joined_via === "invite" ? `<span title="주보 초대 가입">🎟️</span>` : ""}
           ${m.is_admin ? `<span style="color:var(--carrot);font-size:10.5px">관리자</span>` : ""}
           ${pending ? `<span class="pending-tag">승인 대기</span>` : ""}</div>
         <div class="rsub">${m.full_name ? `<b>실명 ${esc(m.full_name)}</b> · ` : ""}${esc(m.email ?? "")} · ${joined} 가입 · 물품 ${m.product_count}개</div>
@@ -2361,6 +2418,50 @@ async function unban(email){
   if (error){ toast("해제하지 못했어요", "err"); return; }
   toast("차단을 해제했어요");
   loadBanList();
+}
+
+/* ── 관리자: 주보 초대 링크 ── */
+async function loadInvite(){
+  // 관리자(is_admin)만 invite_code 를 읽을 수 있음(RLS)
+  const { data, error } = await db.from("site_settings")
+    .select("key, value").in("key", ["invite_code", "invite_enabled"]);
+  if (error) return;
+  const m = Object.fromEntries((data ?? []).map(r => [r.key, r.value]));
+  $("inviteOn").checked = m.invite_enabled === "true";
+  const code = m.invite_code || "";
+  $("inviteLink").value = code
+    ? location.origin + "/?invite=" + code
+    : "(코드 없음 — 새 코드로 교체를 눌러주세요)";
+  $("inviteLink").dataset.code = code;
+}
+
+async function toggleInvite(on){
+  const { error } = await db.from("site_settings")
+    .upsert({ key: "invite_enabled", value: on ? "true" : "false" });
+  if (error){ toast("변경에 실패했어요", "err"); $("inviteOn").checked = !on; return; }
+  siteSettings.invite_enabled = on ? "true" : "false";
+  toast(on ? "초대 링크를 켰어요 🎟️" : "초대 링크를 껐어요");
+}
+
+async function copyInvite(){
+  const v = $("inviteLink").value;
+  if (!v || v.startsWith("(")){ toast("먼저 코드를 만들어주세요", "err"); return; }
+  try {
+    await navigator.clipboard.writeText(v);
+    toast("초대 링크를 복사했어요");
+  } catch (e){
+    $("inviteLink").select();
+    try { document.execCommand("copy"); toast("초대 링크를 복사했어요"); }
+    catch (e2){ toast("복사에 실패했어요. 링크를 길게 눌러 복사해주세요.", "err"); }
+  }
+}
+
+async function rotateInvite(){
+  if (!confirm("새 코드로 교체하면 기존 주보의 QR는 더 이상 동작하지 않게 됩니다.\n계속할까요?")) return;
+  const { error } = await db.rpc("admin_rotate_invite");
+  if (error){ toast("교체에 실패했어요", "err"); return; }
+  await loadInvite();
+  toast("새 코드로 교체했어요. QR을 새로 만들어 주보에 반영해주세요.");
 }
 
 /* ─────────────────────────────── 사이트 문구 ── */
@@ -3071,10 +3172,18 @@ async function doSignup(e){
     $("signupError").textContent = "비밀번호가 서로 달라요."; return;
   }
   const email = $("suEmail").value.trim();
+  const password = $("suPw").value;
+  const nickname = $("suNick").value.trim();
+  const full_name = $("suName").value.trim();
+
+  // 🎟️ 주보 초대 가입: 엣지 함수로 즉시 가입·승인 → 바로 로그인
+  if (inviteActive && inviteCode){
+    return doInviteSignup(email, password, nickname, full_name, e.submitter);
+  }
+
   const { data, error } = await db.auth.signUp({
-    email,
-    password: $("suPw").value,
-    options: { data: { nickname: $("suNick").value.trim(), full_name: $("suName").value.trim() } },
+    email, password,
+    options: { data: { nickname, full_name } },
   });
   if (error){
     $("signupError").textContent =
@@ -3090,6 +3199,42 @@ async function doSignup(e){
     // 이메일 확인 ON → 세션 없음 → 인증 안내 화면
     showEmailCheck(email);
   }
+}
+
+// 주보 초대 가입: invite-signup 함수(인증·승인 처리) → 성공 시 즉시 로그인 → 온보딩 직행
+async function doInviteSignup(email, password, nickname, full_name, btn){
+  if (btn){ btn.disabled = true; btn.textContent = "가입 중…"; }
+  const { data, error } = await db.functions.invoke("invite-signup", {
+    body: { email, password, nickname, full_name, code: inviteCode },
+  });
+  // 함수가 4xx/5xx면 supabase-js는 error만 주므로 응답 본문의 한국어 메시지를 꺼냄
+  let serverMsg = data?.error ?? null;
+  if (error && error.context && typeof error.context.json === "function"){
+    try { serverMsg = (await error.context.json())?.error ?? serverMsg; } catch(e){}
+  }
+  if (btn){ btn.disabled = false; btn.textContent = "가입하기"; }
+  if (error || data?.error){
+    // 코드가 그새 만료·비활성이면 일반 가입으로 전환 안내
+    if (/유효하지 않거나 만료/.test(serverMsg || "")){
+      inviteActive = false; inviteCode = null;
+      $("inviteBadge").classList.add("hidden");
+      $("inviteExpired").classList.remove("hidden");
+    }
+    $("signupError").textContent = serverMsg ?? "가입에 실패했어요. 잠시 후 다시 시도해주세요.";
+    return;
+  }
+  // 성공 → 바로 로그인 (초대 가입은 기기에 세션 유지)
+  localStorage.removeItem("hmc_session_only");
+  const { error: loginErr } = await db.auth.signInWithPassword({ email, password });
+  closeModal("authModal");
+  if (loginErr){
+    toast("가입됐어요! 로그인해주세요 🙏");
+    openAuth("login");
+    $("loginEmail").value = email;
+    return;
+  }
+  // SIGNED_IN → revealForSession: approved=true·실명 있음 → 대기·프로필완성 건너뛰고 알림 온보딩으로
+  toast("환영해요! 바로 시작할 수 있어요 🎉");
 }
 
 async function resendConfirm(){
@@ -3851,7 +3996,7 @@ function adminSection(sec){
   if (sec === "dash") loadAdminStats();
   else if (sec === "sales") loadSales();
   else if (sec === "reports"){ loadReports(); loadReportedChats(); }
-  else if (sec === "members"){ resetBanList(); loadMembers(); }
+  else if (sec === "members"){ resetBanList(); loadInvite(); loadMembers(); }
   else if (sec === "settings") fillSettingsForm();
   else if (sec === "cats") renderCatAdmin();
 }
