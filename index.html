@@ -308,7 +308,8 @@ main{ max-width:1180px; margin:0 auto; padding:30px 20px 80px; }
 .modal .backdrop{ position:absolute; inset:0; background:rgba(38,32,26,.55); backdrop-filter:blur(4px); }
 .modal .panel{
   position:relative; background:var(--card); border-radius:26px; width:100%; max-width:440px;
-  max-height:calc(100dvh - 40px); overflow-y:auto; box-shadow:0 30px 80px rgba(38,32,26,.3);
+  max-height:calc(100dvh - 40px); overflow-y:auto; -webkit-overflow-scrolling:touch;
+  box-shadow:0 30px 80px rgba(38,32,26,.3);
   animation:pop .22s cubic-bezier(.2,.9,.3,1.2);
 }
 @keyframes pop{ from{ transform:translateY(14px) scale(.97); opacity:0; } }
@@ -370,10 +371,16 @@ main{ max-width:1180px; margin:0 auto; padding:30px 20px 80px; }
    Detail modal
    ============================================================ */
 #detailModal .panel{ max-width:960px; padding:0; overflow:hidden; display:flex; flex-direction:column; }
+/* 모바일: 패널 전체가 세로 스크롤되게 (overflow:hidden 클리핑으로 스크롤 막히던 문제 수정) */
+@media (max-width:899px){
+  #detailModal .panel{ overflow-y:auto; -webkit-overflow-scrolling:touch; max-height:92dvh; }
+  #detailModal .d-desc{ overflow-y:visible; flex:none; }
+}
 @media (min-width:900px){
   #detailModal .panel{ flex-direction:row; height:620px; }
   #detailModal .d-media{ width:56%; height:100%; }
   #detailModal .d-info{ width:44%; height:100%; display:flex; flex-direction:column; }
+  #detailModal .d-desc{ overflow-y:auto; }
 }
 .d-media{ position:relative; background:var(--butter); aspect-ratio:1/1; max-height:52dvh; }
 @media (min-width:900px){ .d-media{ aspect-ratio:auto; max-height:none; } }
@@ -457,9 +464,16 @@ main{ max-width:1180px; margin:0 auto; padding:30px 20px 80px; }
 }
 .profile-chip .pc-name{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
 @media (max-width:430px){
-  .header-actions{ gap:6px; }
-  #postBtn .pb-text{ display:none; }
-  #postBtn{ padding:11px 15px; font-size:16px; }
+  .header-actions{ gap:7px; }
+  /* 물품 올리기: 라벨 유지 + 선명하게 + 최소 터치 44px */
+  #postBtn{ padding:11px 14px; font-size:14px; min-height:44px; }
+  #postBtn .pb-text{ display:inline; }
+  /* 알림·채팅 아이콘: 크게 + 터치영역 44px */
+  .header-actions .icon-btn{ width:44px; height:44px; font-size:19px; }
+  /* 프로필칩: 아바타만 (닉네임 숨겨 공간 확보) */
+  .profile-chip{ padding:6px; max-width:none; }
+  .profile-chip .pc-name{ display:none; }
+  .profile-chip .avatar{ width:32px; height:32px; }
 }
 .profile-chip .avatar{
   width:28px; height:28px; border-radius:50%; background:var(--leaf); color:#fff;
@@ -540,6 +554,11 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
     <div class="header-actions" id="headerActions"><!-- JS 렌더 --></div>
   </div>
 </header>
+<div id="kakaoBanner" class="kakao-banner hidden">
+  <span>📱 원활한 이용을 위해 외부 브라우저에서 열어주세요</span>
+  <button type="button" onclick="openExternalKakao()">외부 브라우저로 열기</button>
+  <button type="button" class="kb-copy" onclick="copyCurrentUrl()">주소 복사</button>
+</div>
 <div class="awning" aria-hidden="true"></div>
 
 <!-- ═══════════════ 로그인 우선 랜딩 (비로그인) ═══════════════ -->
@@ -590,7 +609,7 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
 <!-- ═══════════════ 장터 / 게시판 전환 ═══════════════ -->
 <nav class="view-tabs hidden">
   <button id="vtMarket" class="on" onclick="switchView('market')">🥕 장터</button>
-  <button id="vtBoard" onclick="switchView('board')">💬 게시판</button>
+  <button id="vtBoard" onclick="switchView('board')">📋 게시판</button>
 </nav>
 <button class="notice-strip hidden" id="noticeStrip"></button>
 
@@ -781,6 +800,9 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
       <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
       구글로 계속하기
     </button>
+    <div id="kakaoGoogleNotice" class="kakao-notice hidden">
+      🈲 카카오톡 브라우저에서는 구글 로그인이 제한돼요.<br/>상단의 <b>‘외부 브라우저로 열기’</b>로 열거나 이메일로 로그인해주세요.
+    </div>
     <div class="or-divider"><span>또는 이메일로</span></div>
 
     <form id="loginForm" onsubmit="doLogin(event)">
@@ -979,6 +1001,10 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
   padding:2px 7px; border-radius:8px; margin-left:4px; vertical-align:middle; }
 .mini-btn.approve{ background:var(--leaf-soft); color:var(--leaf); font-weight:800; }
 .mini-btn.approve:hover{ background:#d4e8d9; }
+.mini-btn.donate{ background:var(--carrot-soft); color:var(--carrot-deep); font-weight:800; }
+.mini-btn.donate:hover{ background:#ffd9b8; }
+.donated-tag{ background:var(--leaf-soft); color:var(--leaf); font-size:10px; font-weight:800;
+  padding:2px 7px; border-radius:8px; margin-left:4px; vertical-align:middle; }
 /* 구글 로그인 버튼 + 구분선 */
 .btn-google{ display:flex; align-items:center; justify-content:center; gap:10px; width:100%;
   padding:12px; border:1.5px solid var(--line); border-radius:14px; background:#fff;
@@ -989,6 +1015,16 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
 .or-divider{ display:flex; align-items:center; gap:12px; margin:16px 0; }
 .or-divider::before, .or-divider::after{ content:""; flex:1; height:1px; background:var(--line); }
 .or-divider span{ font-size:12px; font-weight:600; color:var(--muted); white-space:nowrap; }
+/* 카카오톡 인앱 브라우저 안내 */
+.kakao-banner{ display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap;
+  background:#FEE500; color:#3C1E1E; font-size:12.5px; font-weight:700; padding:9px 14px; text-align:center; }
+.kakao-banner button{ background:#3C1E1E; color:#FEE500; border-radius:8px; padding:6px 12px;
+  font-weight:800; font-size:12px; }
+.kakao-banner .kb-copy{ background:transparent; color:#3C1E1E; text-decoration:underline; padding:6px 4px; }
+.kakao-notice{ background:var(--butter); border:1.5px solid var(--line); border-radius:12px;
+  padding:11px 13px; font-size:12px; color:var(--muted); font-weight:600; text-align:center;
+  line-height:1.65; margin-bottom:2px; }
+.kakao-notice b{ color:var(--carrot-deep); }
 
 /* ── 관리자 전체화면 뷰 ── */
 #admin-top{ max-width:980px; }
@@ -1177,7 +1213,7 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
     <div id="pvComments"></div>
     <div class="cmt-form" id="pvCmtForm">
       <input type="text" id="cmtInput" maxlength="300" placeholder="따뜻한 댓글을 남겨주세요"
-        onkeydown="if(event.key==='Enter'){event.preventDefault();submitComment();}" />
+        onkeydown="if(event.isComposing||event.keyCode===229)return; if(event.key==='Enter'){event.preventDefault();submitComment();}" />
       <button class="btn btn-primary" onclick="submitComment()">등록</button>
     </div>
   </div></div>
@@ -1298,7 +1334,7 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
     <div class="chat-body" id="crBody"></div>
     <div class="chat-input" id="crInputBar">
       <input type="text" id="crInput" maxlength="1000" placeholder="메시지를 입력하세요"
-        onkeydown="if(event.key==='Enter'){event.preventDefault();sendChat();}" />
+        onkeydown="if(event.isComposing||event.keyCode===229)return; if(event.key==='Enter'){event.preventDefault();sendChat();}" />
       <button class="chat-send" onclick="sendChat()" aria-label="전송">➤</button>
     </div>
   </div></div>
@@ -1537,6 +1573,7 @@ async function init(){
   });
   $("imgInput").addEventListener("change", e => addImageFiles(e.target.files));
   $("bpImgInput").addEventListener("change", e => addBpFiles(e.target.files));
+  setupKakao();   // 카카오톡 인앱 브라우저면 배너·구글 안내 표시
 }
 
 /* ─────────────────────────────── 접근 게이트 (로그인·승인) ── */
@@ -1662,7 +1699,7 @@ async function loadCategories(){
 
 async function loadProducts(){
   const { data, error } = await db.from("products")
-    .select(`id, name, price, status, description, images, is_hot, created_at, sold_at, legacy,
+    .select(`id, name, price, status, description, images, is_hot, created_at, sold_at, donated_at, legacy,
              category_id, seller_id, reserved_by,
              category:categories(id, name, emoji),
              seller:profiles!products_seller_id_fkey(id, nickname),
@@ -2618,10 +2655,10 @@ async function submitBoardPost(e){
     for (let i = 0; i < bpImages.length; i++){
       const im = bpImages[i];
       if (im.kind === "url"){ urls.push(im.url); continue; }
-      const blob = await compressImage(im.file);
-      const path = `${session.user.id}/post-${Date.now()}-${i}.jpg`;
+      const { blob, contentType, ext } = await compressOrOriginal(im.file);
+      const path = `${session.user.id}/post-${Date.now()}-${i}.${ext}`;
       const { error: upErr } = await db.storage.from("product-images")
-        .upload(path, blob, { contentType: "image/jpeg" });
+        .upload(path, blob, { contentType });
       if (upErr) throw upErr;
       urls.push(db.storage.from("product-images").getPublicUrl(path).data.publicUrl);
     }
@@ -2912,6 +2949,26 @@ async function googleRedirectFallback(){
   // 성공 시 구글 인증 페이지로 리다이렉트됨. 복귀 후 SIGNED_IN → revealForSession 처리.
 }
 
+/* ── 카카오톡 인앱 브라우저 대응 ── */
+function setupKakao(){
+  if (!/kakaotalk/i.test(navigator.userAgent)) return;
+  $("kakaoBanner")?.classList.remove("hidden");
+  document.querySelector(".btn-google")?.classList.add("hidden");
+  $("kakaoGoogleNotice")?.classList.remove("hidden");
+}
+function openExternalKakao(){
+  // 카카오톡 스킴으로 기본 브라우저에서 현재 주소 열기
+  location.href = "kakaotalk://web/openExternal?url=" + encodeURIComponent(location.href);
+}
+async function copyCurrentUrl(){
+  try {
+    await navigator.clipboard.writeText(location.href);
+    toast("주소를 복사했어요! 기본 브라우저에 붙여넣어 열어주세요");
+  } catch (e){
+    prompt("아래 주소를 복사해 기본 브라우저에서 열어주세요:", location.href);
+  }
+}
+
 /* ── 프로필 완성 (구글 로그인 등 실명 없는 사용자, 필수) ── */
 function openProfileComplete(){
   const meta = session?.user?.user_metadata || {};
@@ -3043,9 +3100,10 @@ async function changeNickname(){
 
 /* ───────────────────────────────────────────── stats ── */
 function renderStats(){
+  // 모금액은 기부완료(donated_at)된 건만 합산. "나눔 완료 N건"은 판매완료 기준.
+  const total = products.filter(p => p.donated_at).reduce((s, p) => s + (Number(p.price) || 0), 0);
   const sold = products.filter(p => p.status === "판매완료");
-  const total = sold.reduce((s, p) => s + (Number(p.price) || 0), 0);
-  const active = products.length - sold.length;
+  const active = products.filter(p => !p.legacy).length - sold.filter(p => !p.legacy).length;
   $("raisedAmount").innerHTML =
     `<b>€${Number.isInteger(total) ? total.toLocaleString() : total.toFixed(2)}</b>`;
   $("raisedSub").textContent = sold.length > 0
@@ -3207,8 +3265,8 @@ function renderDetailActions(p){
   const isReserver = profile && p.reserved_by === profile.id;
   let html = "";
 
-  // ── 판매자 / 관리자 관리 도구
-  if (isMine || isAdmin){
+  // ── 상태 변경: 판매자 본인만 (관리자는 판매내역의 '상태 정정'으로)
+  if (isMine){
     if (p.status === "예약중")
       html += `<div class="d-note">🧡 <b>${esc(p.reserver?.nickname ?? "성도")}</b>님이 예약하셨어요.
         거래가 끝나면 <b>판매완료</b>로 바꿔주세요.</div>`;
@@ -3217,8 +3275,11 @@ function renderDetailActions(p){
         ${["판매중","예약중","판매완료"].map(s =>
           `<button class="${p.status === s ? "on" : ""}" onclick="setStatus('${p.id}','${s}')">${s}</button>`).join("")}
       </div>
-    </div>
-    <div class="d-actions" style="margin-bottom:8px">
+    </div>`;
+  }
+  // ── 수정 / 인기(관리자) / 삭제: 판매자·관리자
+  if (isMine || isAdmin){
+    html += `<div class="d-actions" style="margin-bottom:8px">
       <button class="btn btn-soft" onclick="openPost('${p.id}')">✏️ 수정</button>
       ${isAdmin ? `<button class="btn btn-ghost" onclick="toggleHot('${p.id}')">
         ${p.is_hot ? "🔥 인기 해제" : "🔥 인기 지정"}</button>` : ""}
@@ -3295,12 +3356,18 @@ async function shareItem(id){
 
 /* ────────────────────────────── reserve / status ops ── */
 async function reserve(id){
+  const p = products.find(x => x.id === id);
+  if (p && profile && p.seller_id === profile.id){
+    toast("내가 올린 물품은 예약할 수 없어요", "err"); return;
+  }
   const { error } = await db.rpc("reserve_product", { p_id: id });
-  if (error){ toast(error.message || "예약에 실패했어요", "err"); return; }
+  if (error){
+    const msg = /OWN_PRODUCT/.test(error.message) ? "내가 올린 물품은 예약할 수 없어요" : (error.message || "예약에 실패했어요");
+    toast(msg, "err"); return;
+  }
   toast("예약 완료! 판매자님께 알림을 보냈어요");
   await loadProducts();
-  const p = products.find(x => x.id === id);
-  if (p && detailId === id) openDetail(id);
+  if (detailId === id) openDetail(id);
 }
 
 async function cancelReserve(id){
@@ -3317,11 +3384,36 @@ async function setStatus(id, status){
   const patch = { status };
   if (status === "판매중") patch.reserved_by = null;
   const { error } = await db.from("products").update(patch).eq("id", id);
-  if (error){ toast("상태 변경에 실패했어요", "err"); return; }
+  if (error){
+    toast(/insufficient_privilege|STATUS_CHANGE/.test(error.message + error.code)
+      ? "판매자 본인만 상태를 바꿀 수 있어요" : "상태 변경에 실패했어요", "err");
+    return;
+  }
   toast(`'${status}'(으)로 변경했어요`);
   await loadProducts();
   if (detailId === id) openDetail(id);
   renderMyList();
+}
+
+// 관리자 상태 정정(운영 대응 전용). 판매자가 처리를 깜빡했을 때만.
+async function adminFixStatus(id){
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  const choice = prompt(
+    `⚠️ 운영자 상태 정정\n'${p.name}' — 원래는 판매자 본인이 바꾸는 항목이에요.\n` +
+    `새 상태를 입력하세요: 판매중 / 예약중 / 판매완료`, p.status);
+  if (!choice) return;
+  const status = choice.trim();
+  if (!["판매중", "예약중", "판매완료"].includes(status)){
+    toast("판매중 / 예약중 / 판매완료 중 하나를 입력해주세요", "err"); return;
+  }
+  if (status === p.status){ toast("이미 그 상태예요"); return; }
+  if (!confirm(`'${p.name}'을(를) '${status}'(으)로 정정할까요?`)) return;
+  const { error } = await db.rpc("admin_set_status", { p_id: id, p_status: status });
+  if (error){ toast("정정하지 못했어요", "err"); return; }
+  await loadProducts();
+  loadSales();
+  toast(`상태를 '${status}'(으)로 정정했어요`);
 }
 
 async function toggleHot(id){
@@ -3423,6 +3515,17 @@ function compressImage(file, maxSide = 1280, quality = 0.82){
   });
 }
 
+// 압축 시도 → 실패(카톡 인앱 등 canvas 제약)하면 원본 파일로 업로드 폴백
+async function compressOrOriginal(file){
+  try {
+    return { blob: await compressImage(file), contentType: "image/jpeg", ext: "jpg" };
+  } catch (e){
+    toast("사진 최적화에 실패해 원본으로 올려요", "err");
+    const ext = (file.name && file.name.includes(".")) ? file.name.split(".").pop().toLowerCase() : "jpg";
+    return { blob: file, contentType: file.type || "image/jpeg", ext: /^[a-z0-9]{2,5}$/.test(ext) ? ext : "jpg" };
+  }
+}
+
 async function submitPost(e){
   e.preventDefault();
   if (!session || !profile) return;
@@ -3437,10 +3540,10 @@ async function submitPost(e){
     for (let i = 0; i < postImages.length; i++){
       const im = postImages[i];
       if (im.kind === "url"){ urls.push(im.url); continue; }
-      const blob = await compressImage(im.file);
-      const path = `${session.user.id}/${Date.now()}-${i}.jpg`;
+      const { blob, contentType, ext } = await compressOrOriginal(im.file);
+      const path = `${session.user.id}/${Date.now()}-${i}.${ext}`;
       const { error: upErr } = await db.storage.from("product-images")
-        .upload(path, blob, { contentType: "image/jpeg" });
+        .upload(path, blob, { contentType });
       if (upErr) throw upErr;
       urls.push(db.storage.from("product-images").getPublicUrl(path).data.publicUrl);
     }
@@ -3655,7 +3758,7 @@ function adminSection(sec){
 
 async function loadAdminStats(){
   const sold = products.filter(p => p.status === "판매완료");
-  const total = sold.reduce((s, p) => s + (Number(p.price) || 0), 0);
+  const total = products.filter(p => p.donated_at).reduce((s, p) => s + (Number(p.price) || 0), 0);
   const { count } = await db.from("profiles").select("id", { count: "exact", head: true });
   $("adminStats").innerHTML = `
     <div class="stat-box"><div class="n">€${total.toLocaleString()}</div><div class="l">모인 헌금</div></div>
@@ -3689,11 +3792,15 @@ function saleSeller(p){
   return p.legacy ? "지난 바자회 나눔" : (p.seller?.nickname ? p.seller.nickname + " 님" : "탈퇴한 성도");
 }
 
+function donNum(n){ return Number.isInteger(n) ? n.toLocaleString() : n.toFixed(2); }
+
 function loadSales(){
   const list = soldProducts();
-  const total = list.reduce((s, p) => s + (Number(p.price) || 0), 0);
+  const donatedTotal = list.filter(p => p.donated_at).reduce((s, p) => s + (Number(p.price) || 0), 0);
+  const pendingTotal = list.filter(p => !p.donated_at).reduce((s, p) => s + (Number(p.price) || 0), 0);
   $("salesSummary").innerHTML =
-    `<div class="stat-box"><div class="n">€${Number.isInteger(total) ? total.toLocaleString() : total.toFixed(2)}</div><div class="l">모인 헌금 합계</div></div>
+    `<div class="stat-box"><div class="n">€${donNum(donatedTotal)}</div><div class="l">기부 완료</div></div>
+     <div class="stat-box"><div class="n">€${donNum(pendingTotal)}</div><div class="l">기부 대기</div></div>
      <div class="stat-box"><div class="n">${list.length}</div><div class="l">판매완료 건수</div></div>`;
   if (!$("lgDate").value) $("lgDate").value = new Date().toISOString().slice(0, 10);
   const el = $("salesList");
@@ -3704,20 +3811,33 @@ function loadSales(){
   el.innerHTML = list.map(p => {
     const date = new Date(p.sold_at ?? p.created_at)
       .toLocaleDateString("ko-KR", { year: "2-digit", month: "numeric", day: "numeric" });
+    const donated = !!p.donated_at;
     return `
-    <div class="rowitem">
+    <div class="rowitem${donated ? "" : " pending"}">
       <div class="rmain" style="cursor:default">
-        <div class="rname">${esc(p.name)} · <span style="color:var(--carrot)">${fmtPrice(p.price)}</span></div>
+        <div class="rname">${esc(p.name)} · <span style="color:var(--carrot)">${fmtPrice(p.price)}</span>
+          ${donated ? `<span class="donated-tag">기부됨 ✓</span>` : ""}</div>
         <div class="rsub">${date} · ${esc(saleSeller(p))}${
           p.legacy ? ` · <span style="color:var(--muted)">과거 기록</span>` : ""}</div>
       </div>
       <div class="racts">
+        <button class="mini-btn ${donated ? "" : "donate"}" onclick="toggleDonated('${p.id}', ${!donated})">${
+          donated ? "기부취소" : "💰 기부완료"}</button>
+        <button class="mini-btn" onclick="adminFixStatus('${p.id}')">상태 정정</button>
         ${p.legacy
           ? `<button class="mini-btn danger" onclick="deleteLegacySale('${p.id}')">삭제</button>`
           : ""}
       </div>
     </div>`;
   }).join("");
+}
+
+async function toggleDonated(id, v){
+  const { error } = await db.rpc("admin_set_donated", { p_id: id, v });
+  if (error){ toast("처리하지 못했어요", "err"); return; }
+  await loadProducts();   // 모금액·게이지 즉시 반영
+  loadSales();
+  toast(v ? "기부완료로 표시했어요 💰" : "기부완료를 취소했어요");
 }
 
 async function addLegacySale(){
@@ -3768,12 +3888,13 @@ function csvCell(v){
 }
 
 function buildSalesCSV(){
-  const header = ["판매일", "물품명", "기부금", "판매자", "구분"];
+  const header = ["판매일", "물품명", "기부금", "판매자", "구분", "기부여부"];
   const rows = soldProducts().map(p => {
     const date = new Date(p.sold_at ?? p.created_at).toLocaleDateString("ko-KR");
     const seller = p.legacy ? "지난 바자회" : (p.seller?.nickname || "탈퇴한 성도");
     const kind = p.legacy ? "과거 기록" : "온라인 나눔";
-    return [date, p.name, Number(p.price) || 0, seller, kind];
+    const donated = p.donated_at ? "기부완료" : "기부대기";
+    return [date, p.name, Number(p.price) || 0, seller, kind, donated];
   });
   return [header, ...rows].map(r => r.map(csvCell).join(",")).join("\r\n");
 }

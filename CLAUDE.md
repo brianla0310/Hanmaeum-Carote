@@ -77,9 +77,11 @@
   - `full_name`: 실명(관리자 승인 확인용, 다른 성도엔 비노출). `approved`: 관리자 승인 여부(기본 false, 기존 회원 전원 true).
   - `notice_email`: 공지 이메일 수신 동의(기본 false). `notify_setup_done`: 가입 후 알림 온보딩 완료 여부.
 - **categories** `(id, name, emoji, ...)` — 7개 시드. 무료나눔은 카테고리 아님(price=0이면 💚 무료나눔).
-- **products** `(id, name, price, status, description, images[], is_hot, seller_id, reserved_by, sold_at, created_at, category_id)`
+- **products** `(id, name, price, status, description, images[], is_hot, seller_id, reserved_by, sold_at, donated_at, created_at, category_id, legacy)`
   - status: `판매중 | 예약중 | 판매완료`. `seller_id` nullable(탈퇴 익명화용).
   - `sold_at`: 판매완료 전환 시각(트리거 `set_sold_at`). 나눔후기 7일 제한·채팅 자동삭제 기준.
+  - `donated_at`: **기부완료 시각**. 모금액(renderStats·목표 게이지·대시보드)은 **donated_at 있는 건만 합산**(판매완료≠모금 반영). legacy 과거기록은 자동 donated. 관리자가 판매내역에서 토글.
+  - **status 변경은 판매자 본인만**(트리거 `enforce_status_change`): 직접 UPDATE로 status 바꾸면 판매자만 허용(관리자·구매자 불가). 예약/취소/관리자정정 RPC는 GUC `app.allow_status_change` 플래그로 통과.
 - **subscriptions** `(id, user_id, category_id)` — category_id NULL = 전체 알림.
 - **favorites** `(user_id, product_id)` PK 복합. RLS 본인만.
 - **reports** `(id, product_id, reporter_id, reason, detail, created_at)` — unique(product_id, reporter_id).
@@ -103,8 +105,11 @@
 - `get_my_profile()` — 본인 프로필 조회(full_name·notif_seen_at 포함). full_name은 SELECT 차단이라 프론트 `loadProfile`이 이 RPC로 실명 유무를 판단.
 - `_add_notif(user,type,title,body,link_kind,link_id)` — 인앱 알림 생성 헬퍼(정의자).
 - `notif_*()` 트리거 — 인앱 알림 생성(본인 행동엔 안 만듦, `is distinct from auth.uid()`): products(예약/취소/판매완료→판매자·구매자), comments(→글쓴이, 본인 제외), posts review(→판매자), reports·conversations 신고(→관리자), profiles 실명 채워짐(→관리자, 이메일 트리거와 별개).
-- `reserve_product(p_id)` / `cancel_reservation(p_id)` — 예약/취소. (내부에서 `is_approved()` 검증)
-- `set_sold_at()` — 판매완료 시각 트리거.
+- `reserve_product(p_id)` / `cancel_reservation(p_id)` — 예약/취소. `is_approved()` 검증 + **셀프예약 차단**(seller=uid → OWN_PRODUCT). 내부에서 `set_config('app.allow_status_change','1')`로 status 변경 트리거 통과.
+- `admin_set_status(p_id, p_status)` — 관리자 상태 정정(운영 대응 전용). is_admin 검증 + GUC 플래그. 판매내역 '상태 정정' 버튼.
+- `admin_set_donated(p_id, v)` — 관리자 기부완료 토글(판매완료 건만, donated_at 설정/해제). is_admin 검증.
+- `enforce_status_change()` — BEFORE UPDATE 트리거. status 변경 시 판매자 본인 또는 GUC 플래그 없으면 거부.
+- `set_sold_at()` — 판매완료 시각 트리거(INSERT/UPDATE). legacy 판매완료 INSERT는 donated_at도 자동 설정.
 - `get_or_create_conversation(p_product_id)` — 구매자가 대화방 생성/조회.
 - `on_message_insert()` — 메시지 삽입 시 대화방 요약·읽음 갱신 트리거.
 - `report_conversation(p_conv_id, p_reason)` — 참여자가 대화 신고(reported=true) + 관리자 알림.
@@ -199,6 +204,7 @@ git add -A && git commit -m "설명" && git push
 - 4차: 관리자 전체화면 뷰 개편(좌측 사이드바/모바일 가로 탭), 판매내역 섹션(과거기록 `legacy`·CSV 내보내기), **커스텀 도메인 `hanmaeumcarote.com` 연결**(Cloudflare DNS only→Netlify) + Brevo 도메인 인증(SPF/DKIM).
 - 5차: **보안 개편** — 가입 승인제(`approved`·실명 `full_name`·`admin_approve_member`), 로그인 우선 랜딩(비로그인 랜딩·읽기 RLS `auth.uid() is not null`), 쓰기 RLS·RPC에 `is_approved()`, 승인 대기 화면, 관리자 승인 UI(대기 강조·승인 버튼), 가입 대기·승인 완료 이메일(notify E/F), "로그인 상태 유지" 세션 옵션(sessionStorage 어댑터), 딥링크 로그인 후 이어열기, 이메일 인증 안내·재발송. Supabase 인증 메일 한국어 템플릿(`docs/email-templates/`). 모금 목표 게이지(`goal_enabled/goal_amount`).
 - 7차: **인앱 알림 센터**(🔔) — `notifications` 테이블·정의자 트리거(예약·취소·판매완료·댓글·후기·신고·가입대기), 헤더 종+빨간점(`notif_seen_at`)+딸랑 흔들림(reduced-motion 대응), 알림 패널(미읽음 음영·상대시간·클릭 시 대상 열기·모두 읽음), Realtime 구독(INSERT), 30일 후 자동삭제. RLS 본인만, 클라이언트 insert 불가.
+- 8차: **실사용 긴급 수정 묶음** — 구글 로그인 GIS(`signInWithIdToken`+nonce, 카톡 등 실패 시 리다이렉트 폴백). [A]기부완료 단계(`donated_at`·`admin_set_donated`·판매내역 기부 토글·CSV 기부여부), [B]셀프예약 차단, [C]status 변경 판매자 전용(`enforce_status_change`+GUC, 관리자 `admin_set_status` 정정), [D]모바일 헤더(물품버튼 라벨·아이콘 44px·게시판 📋), [E]모바일 상세 스크롤(`overflow:hidden`→auto), [F]카카오톡 인앱(외부브라우저 배너·구글 안내·이미지 압축 폴백·IME `isComposing` 중복전송 가드).
 - 6차: **구글 로그인**(OAuth) — 인증 모달에 "구글로 계속하기"(+"또는 이메일로" 구분선), `signInWithOAuth({provider:'google', redirectTo:location.origin})`. OAuth 사용자는 실명이 없어 **프로필 완성 모달**(필수·닫기 불가, 승인 대기·온보딩보다 먼저)로 실명·닉네임 입력 → `complete_profile` RPC. `handle_new_user`가 provider별로 full_name 분기, `get_my_profile` RPC로 본인 full_name 판단, 승인 대기 알림 트리거를 INSERT(full_name 有)+full_name채움 UPDATE로 분기(이메일/OAuth 각 1회).
 
 ### 알려진 한계 (의도적 결정)
