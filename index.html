@@ -429,7 +429,8 @@ main{ max-width:1180px; margin:0 auto; padding:30px 20px 80px; }
 .tag.st-reserved{ background:var(--carrot-soft); color:var(--carrot-deep); }
 .tag.st-sold{ background:#EAE4DA; color:var(--muted); }
 .d-head h2{ font-size:21px; font-weight:800; letter-spacing:-0.02em; line-height:1.3; }
-.d-head .seller-line{ font-size:12.5px; color:var(--muted); font-weight:600; margin-top:6px; }
+.d-head .seller-line{ font-size:12.5px; color:var(--muted); font-weight:600; margin-top:6px;
+  display:flex; align-items:center; gap:8px; }
 .d-head .seller-line b{ color:var(--ink); }
 .d-desc{
   padding:16px 26px; overflow-y:auto; flex:1; font-size:14px; color:#4E463C;
@@ -500,12 +501,42 @@ main{ max-width:1180px; margin:0 auto; padding:30px 20px 80px; }
   /* 프로필칩: 아바타만 (닉네임 숨겨 공간 확보) */
   .profile-chip{ padding:6px; max-width:none; }
   .profile-chip .pc-name{ display:none; }
-  .profile-chip .avatar{ width:32px; height:32px; }
+  .profile-chip .av{ width:32px; height:32px; }
 }
-.profile-chip .avatar{
-  width:28px; height:28px; border-radius:50%; background:var(--leaf); color:#fff;
-  display:grid; place-items:center; font-size:13px; font-weight:800;
-}
+/* 공용 아바타 (사진 있으면 이미지, 없으면 이니셜) */
+.av{ position:relative; width:28px; height:28px; border-radius:50%; background:var(--leaf);
+  color:#fff; display:inline-grid; place-items:center; font-size:12px; font-weight:800;
+  overflow:hidden; flex:none; vertical-align:middle; user-select:none; }
+.av img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.profile-chip .av{ width:28px; height:28px; font-size:13px; }
+/* 대표 배지 (이름 옆 작게) */
+.rep-badge{ font-size:.94em; margin-left:3px; cursor:default; }
+
+/* 프로필 화면 상단 */
+.profile-head{ display:flex; align-items:center; gap:14px; margin-bottom:16px; }
+.ph-avatar{ position:relative; flex:none; cursor:pointer; }
+.ph-avatar .av{ width:64px; height:64px; font-size:26px; box-shadow:0 2px 8px rgba(38,32,26,.1); }
+.ph-cam{ position:absolute; right:-2px; bottom:-2px; width:23px; height:23px; border-radius:50%;
+  background:#fff; border:1.5px solid var(--line); display:grid; place-items:center; font-size:11px; }
+.ph-info{ min-width:0; }
+.ph-name{ font-size:18px; font-weight:800; display:flex; align-items:center; gap:6px; }
+.ph-name .ph-edit{ font-size:14px; color:var(--muted); cursor:pointer; }
+.ph-sub{ font-size:12px; color:var(--muted); font-weight:600; margin-top:3px; }
+.profile-summary{ display:flex; gap:8px; margin-bottom:18px; }
+.ps-box{ flex:1; background:var(--butter); border-radius:14px; padding:11px 6px; text-align:center; }
+.ps-n{ font-size:18px; font-weight:800; color:var(--carrot-deep); }
+.ps-l{ font-size:11px; font-weight:700; color:var(--muted); margin-top:2px; }
+.badge-shelf-title{ font-size:12.5px; font-weight:800; color:var(--ink-soft); margin:0 0 8px; }
+.badge-shelf{ display:grid; grid-template-columns:repeat(5,1fr); gap:7px; margin-bottom:20px; }
+.badge-item{ background:var(--paper); border:1.5px solid var(--line); border-radius:14px;
+  padding:10px 3px 7px; text-align:center; cursor:default; transition:border-color .12s; }
+.badge-item .bi-emoji{ font-size:23px; line-height:1.2; filter:grayscale(1); opacity:.35; }
+.badge-item .bi-name{ font-size:9.5px; font-weight:700; color:var(--muted); margin-top:3px; line-height:1.2; }
+.badge-item.earned .bi-emoji{ filter:none; opacity:1; }
+.badge-item.earned{ cursor:pointer; }
+.badge-item.earned:hover{ border-color:var(--carrot); }
+.badge-item.chosen{ border-color:var(--carrot); background:#FFF9F2; }
+.badge-item .bi-rep{ font-size:8px; font-weight:800; color:var(--carrot); margin-top:2px; height:10px; }
 .dropdown{
   position:absolute; right:20px; top:60px; background:#fff; border:1.5px solid var(--line);
   border-radius:18px; box-shadow:var(--shadow-card); padding:8px; min-width:190px; z-index:70;
@@ -989,13 +1020,32 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
   <div class="lb-counter hidden" id="lbCounter">1 / 1</div>
 </div>
 
-<!-- ═══════════════ 내 활동 ═══════════════ -->
+<!-- ═══════════════ 프로필 ═══════════════ -->
 <div class="modal hidden" id="myModal">
   <div class="backdrop" onclick="closeModal('myModal')"></div>
   <div class="panel"><div class="panel-pad">
     <button class="close-x" onclick="closeModal('myModal')">✕</button>
-    <div class="panel-eyebrow">le mie cose</div>
-    <h2 style="margin-bottom:18px">내 활동</h2>
+    <div class="panel-eyebrow">il mio profilo</div>
+    <h2 style="margin-bottom:16px">프로필</h2>
+
+    <div class="profile-head">
+      <div class="ph-avatar" onclick="$('avatarInput').click()" title="사진 변경">
+        <span id="phAvatar"></span>
+        <span class="ph-cam">📷</span>
+      </div>
+      <div class="ph-info">
+        <div class="ph-name"><span id="phNick"></span>
+          <span class="ph-edit" onclick="changeNickname()" title="닉네임 변경">✏️</span></div>
+        <div class="ph-sub" id="phJoined"></div>
+      </div>
+    </div>
+    <input type="file" id="avatarInput" accept="image/*" class="hidden" />
+
+    <div class="profile-summary" id="profileSummary"></div>
+
+    <div class="badge-shelf-title">🏅 배지 진열장</div>
+    <div class="badge-shelf" id="badgeShelf"></div>
+
     <div class="tabs">
       <button id="tabMine" class="active" onclick="switchMyTab('mine')">내가 올린 물품</button>
       <button id="tabReserved" onclick="switchMyTab('reserved')">예약한 물품</button>
@@ -1399,6 +1449,7 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
   <div class="panel chat-panel"><div class="chat-wrap">
     <div class="chat-head">
       <button class="chat-back" onclick="closeChatRoom()" aria-label="뒤로">‹</button>
+      <span id="crAvatar" style="margin-right:2px"></span>
       <div class="chat-head-main">
         <div class="chat-head-title" id="crTitle"></div>
         <div class="chat-head-sub" id="crSub"></div>
@@ -1649,6 +1700,10 @@ async function init(){
   });
   $("imgInput").addEventListener("change", e => addImageFiles(e.target.files));
   $("bpImgInput").addEventListener("change", e => addBpFiles(e.target.files));
+  $("avatarInput").addEventListener("change", e => {
+    if (e.target.files[0]) changeAvatar(e.target.files[0]);
+    e.target.value = "";
+  });
   setupKakao();   // 카카오톡 인앱 브라우저면 배너·구글 안내 표시
 }
 
@@ -1689,6 +1744,7 @@ async function revealForSession(){
     if (!products.length || !posts.length)
       await Promise.all([loadProducts(), loadPosts()]);
     await loadFavs();
+    await loadMemberStats();   // 배지 계산용(판매자·작성자 대표배지)
     renderGrid();
     refreshChatUnread();
     notifSeenAt = profile.notif_seen_at || null;
@@ -1797,7 +1853,7 @@ async function loadProducts(){
     .select(`id, name, price, status, description, images, is_hot, created_at, sold_at, donated_at, legacy,
              category_id, seller_id, reserved_by,
              category:categories(id, name, emoji),
-             seller:profiles!products_seller_id_fkey(id, nickname),
+             seller:profiles!products_seller_id_fkey(id, nickname, avatar_url, badge),
              reserver:profiles!products_reserved_by_fkey(id, nickname)`)
     .order("created_at", { ascending: false });
   if (error){ console.error(error); showGridError("물품을 불러오지 못했어요."); return; }
@@ -1816,6 +1872,137 @@ function showGridError(msg){
 }
 
 /* ─────────────────────────────────────────────── header ── */
+/* ───────────────────────────────── 아바타 · 배지 ── */
+let memberStats = {};   // { userId: {sold, received, review, year} }
+
+// 배지(서열 없는 기념 배지). rank = 대표배지 자동 선택 우선순위(높을수록 우선)
+const BADGES = [
+  { id:"sprout",  emoji:"🌱", name:"첫 나눔",   cond:"판매완료 1회",      rank:20, test:s=>s.sold  >= 1  },
+  { id:"carrot",  emoji:"🥕", name:"나눔 이웃", cond:"판매완료 5회",      rank:40, test:s=>s.sold  >= 5  },
+  { id:"basket",  emoji:"🧺", name:"나눔 일꾼", cond:"판매완료 15회",     rank:50, test:s=>s.sold  >= 15 },
+  { id:"letter",  emoji:"💌", name:"마음 전달", cond:"나눔 후기 3개 작성", rank:30, test:s=>s.review>= 3  },
+  { id:"founder", emoji:"🏛️", name:"창립 멤버", cond:"2026년 가입",       rank:10, test:s=>s.year === 2026 },
+];
+const BADGE_BY_ID = Object.fromEntries(BADGES.map(b => [b.id, b]));
+
+async function loadMemberStats(){
+  const { data, error } = await db.rpc("member_stats");
+  if (error){ console.error(error); return; }
+  memberStats = {};
+  (data ?? []).forEach(r => memberStats[r.id] = {
+    sold: r.sold_count, received: r.received_count, review: r.review_count, year: r.joined_year });
+}
+
+function earnedBadges(stats){
+  return stats ? BADGES.filter(b => b.test(stats)) : [];
+}
+// 대표 배지: 본인이 고른 것(달성 시) 우선, 없으면 rank 최고 달성 배지
+function repBadge(stats, chosenId){
+  const earned = earnedBadges(stats);
+  if (!earned.length) return null;
+  if (chosenId){ const c = earned.find(b => b.id === chosenId); if (c) return c; }
+  return earned.slice().sort((a, b) => b.rank - a.rank)[0];
+}
+function repBadgeHtml(user){
+  const b = repBadge(memberStats[user?.id], user?.badge);
+  return b ? ` <span class="rep-badge" title="${b.name} · ${b.cond}">${b.emoji}</span>` : "";
+}
+
+// 공용 아바타: 사진 있으면 이미지(로드 실패 시 이니셜로 복귀), 없으면 이니셜
+function avatarHtml(user, size){
+  const initial = esc(((user && user.nickname) || "성")[0]);
+  const style = size ? ` style="width:${size}px;height:${size}px;font-size:${Math.round(size * 0.42)}px"` : "";
+  if (user && user.avatar_url){
+    return `<span class="av"${style}><img src="${esc(user.avatar_url)}" alt="" loading="lazy" onerror="this.remove()" />${initial}</span>`;
+  }
+  return `<span class="av"${style}>${initial}</span>`;
+}
+
+// 프로필 사진 변경: 256px 정사각 크롭 → 본인 폴더 avatar.jpg (덮어쓰기 + 캐시버스팅)
+function cropAvatar(file){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const side = Math.min(img.width, img.height);
+      const sx = (img.width - side) / 2, sy = (img.height - side) / 2;
+      const c = document.createElement("canvas"); c.width = 256; c.height = 256;
+      c.getContext("2d").drawImage(img, sx, sy, side, side, 0, 0, 256, 256);
+      c.toBlob(b => b ? resolve(b) : reject(new Error("변환 실패")), "image/jpeg", 0.85);
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = () => reject(new Error("이미지를 읽을 수 없어요"));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+async function changeAvatar(file){
+  if (!file || !session || !profile) return;
+  try {
+    let blob, contentType = "image/jpeg";
+    try { blob = await cropAvatar(file); }
+    catch (e){ blob = file; contentType = file.type || "image/jpeg"; }   // 폴백: 원본
+    const path = `${session.user.id}/avatar.jpg`;
+    const { error: upErr } = await db.storage.from("product-images")
+      .upload(path, blob, { contentType, upsert: true });
+    if (upErr) throw upErr;
+    const url = db.storage.from("product-images").getPublicUrl(path).data.publicUrl + "?v=" + Date.now();
+    const { error } = await db.from("profiles").update({ avatar_url: url }).eq("id", session.user.id);
+    if (error) throw error;
+    profile.avatar_url = url;
+    renderHeader();
+    renderProfileHead();
+    await loadProducts();   // 그리드·상세의 내 판매자 아바타 갱신
+    toast("프로필 사진을 바꿨어요!");
+  } catch (e){
+    console.error(e);
+    toast("사진 변경에 실패했어요. 잠시 후 다시 시도해주세요.", "err");
+  }
+}
+
+/* ── 프로필 화면(내 활동) 상단: 아바타·닉네임·요약·배지 ── */
+function renderProfileHead(){
+  if (!profile || $("myModal").classList.contains("hidden")) return;
+  $("phAvatar").innerHTML = avatarHtml(profile, 64);
+  $("phNick").textContent = profile.nickname || "성도";
+  $("phJoined").textContent = profile.created_at
+    ? `${new Date(profile.created_at).toLocaleDateString("ko-KR", { year: "numeric", month: "long" })} 가입`
+    : "";
+  const s = memberStats[profile.id] || { sold: 0, received: 0, review: 0, year: 0 };
+  $("profileSummary").innerHTML = `
+    <div class="ps-box"><div class="ps-n">${s.sold}</div><div class="ps-l">나눔</div></div>
+    <div class="ps-box"><div class="ps-n">${s.received}</div><div class="ps-l">받은 나눔</div></div>
+    <div class="ps-box"><div class="ps-n">${s.review}</div><div class="ps-l">후기</div></div>`;
+  renderBadgeShelf();
+}
+
+function renderBadgeShelf(){
+  const s = memberStats[profile.id] || { sold: 0, received: 0, review: 0, year: 0 };
+  const earned = new Set(earnedBadges(s).map(b => b.id));
+  const rep = repBadge(s, profile.badge);
+  $("badgeShelf").innerHTML = BADGES.map(b => {
+    const got = earned.has(b.id), isRep = rep && rep.id === b.id;
+    return `<div class="badge-item ${got ? "earned" : ""} ${isRep ? "chosen" : ""}"
+        title="${b.name} · ${b.cond}${got ? "" : " (미달성)"}"
+        ${got ? `onclick="chooseBadge('${b.id}')"` : ""}>
+        <div class="bi-emoji">${b.emoji}</div>
+        <div class="bi-name">${b.name}</div>
+        <div class="bi-rep">${isRep ? "대표" : ""}</div>
+      </div>`;
+  }).join("");
+}
+
+async function chooseBadge(id){
+  if (!profile) return;
+  const s = memberStats[profile.id];
+  if (!BADGE_BY_ID[id] || !BADGE_BY_ID[id].test(s || {})) return;   // 달성한 것만 선택 가능
+  const next = (profile.badge === id) ? null : id;                  // 재클릭 → 자동(기본)으로
+  const { error } = await db.from("profiles").update({ badge: next }).eq("id", profile.id);
+  if (error){ toast("대표 배지 설정에 실패했어요", "err"); return; }
+  profile.badge = next;
+  renderBadgeShelf();
+  toast(next ? "대표 배지를 설정했어요 🏅" : "대표 배지를 자동 선택으로 되돌렸어요");
+}
+
 function renderHeader(){
   const el = $("headerActions");
   if (!session || !profile){
@@ -1829,14 +2016,13 @@ function renderHeader(){
     el.innerHTML = `<button class="btn btn-ghost" onclick="doLogout()">로그아웃</button>`;
     return;
   }
-  const initial = esc((profile.nickname || "성")[0]);
   el.innerHTML = `
     <button class="btn btn-primary" id="postBtn" onclick="openPost()"><span>＋</span><span class="pb-text"> 물품 올리기</span></button>
     <button class="icon-btn" id="bellBtn" onclick="openNotifPanel()" aria-label="알림" title="알림"><span>🔔</span><span class="notif-dot hidden" id="bellDot"></span></button>
     <button class="icon-btn" onclick="openChatList()" aria-label="채팅" title="채팅">💬${
       chatUnread > 0 ? `<span class="chat-badge">${chatUnread > 99 ? "99+" : chatUnread}</span>` : ""}</button>
     <button class="profile-chip" onclick="toggleDropdown()">
-      <span class="avatar">${initial}</span><span class="pc-name">${esc(profile.nickname)}</span>
+      ${avatarHtml(profile)}<span class="pc-name">${esc(profile.nickname)}</span>
     </button>`;
   updateBellDot();
 }
@@ -1849,7 +2035,7 @@ function toggleDropdown(force){
   const d = document.createElement("div");
   d.className = "dropdown";
   d.innerHTML = `
-    <button onclick="toggleDropdown(false); openMy()">📦 내 활동</button>
+    <button onclick="toggleDropdown(false); openMy()">👤 프로필</button>
     <button onclick="toggleDropdown(false); openNotify()">🔔 알림 설정</button>
     <button onclick="toggleDropdown(false); changeNickname()">✏️ 닉네임 변경</button>
     <button onclick="toggleDropdown(false); openPwChange()">🔒 비밀번호 변경</button>
@@ -2047,8 +2233,8 @@ async function loadChatList(){
     .select(`id, product_id, seller_id, buyer_id, last_message, last_at,
              seller_read_at, buyer_read_at,
              product:products(id, name, images),
-             seller:profiles!conversations_seller_id_fkey(nickname),
-             buyer:profiles!conversations_buyer_id_fkey(nickname)`)
+             seller:profiles!conversations_seller_id_fkey(nickname, avatar_url),
+             buyer:profiles!conversations_buyer_id_fkey(nickname, avatar_url)`)
     .order("last_at", { ascending: false });
   if (error){
     $("chatList").innerHTML = `<div class="empty" style="padding:14px 0">불러오지 못했어요.</div>`;
@@ -2074,14 +2260,10 @@ function renderChatList(){
   el.innerHTML = convos.map(c => {
     const other = c.seller_id === profile.id ? c.buyer : c.seller;
     const otherName = other?.nickname ?? "탈퇴한 성도";
-    const img = c.product?.images?.[0];
-    const thumb = img
-      ? `<img class="chat-row-thumb" src="${esc(img)}" alt="" />`
-      : `<div class="chat-row-thumb">🥕</div>`;
     const unread = isConvUnread(c);
     return `
     <div class="rowitem chat-row ${unread ? "unread" : ""}" onclick="openConv('${c.id}')">
-      ${thumb}
+      ${avatarHtml(other, 52)}
       <div class="rmain">
         <div class="rname">${esc(otherName)}
           <span style="font-weight:600;color:var(--muted);font-size:11px">· ${esc(c.product?.name ?? "삭제된 물품")}</span></div>
@@ -2115,8 +2297,8 @@ async function openConv(convId, asAdmin = false){
   const { data: c, error } = await db.from("conversations")
     .select(`id, product_id, seller_id, buyer_id, reported,
              product:products(id, name, images),
-             seller:profiles!conversations_seller_id_fkey(nickname),
-             buyer:profiles!conversations_buyer_id_fkey(nickname)`)
+             seller:profiles!conversations_seller_id_fkey(nickname, avatar_url),
+             buyer:profiles!conversations_buyer_id_fkey(nickname, avatar_url)`)
     .eq("id", convId).maybeSingle();
   if (error || !c){ toast("대화를 열지 못했어요", "err"); return; }
   curConv = c;
@@ -2126,6 +2308,7 @@ async function openConv(convId, asAdmin = false){
   $("crTitle").textContent = asAdmin
     ? `${c.seller?.nickname ?? "?"} ↔ ${c.buyer?.nickname ?? "?"}`
     : (other?.nickname ?? "탈퇴한 성도");
+  $("crAvatar").innerHTML = asAdmin ? "" : avatarHtml(other, 34);
   $("crSub").textContent = `🥕 ${c.product?.name ?? "삭제된 물품"}`;
 
   // 관리자 열람 모드: 입력·신고 숨김
@@ -2324,6 +2507,7 @@ function renderMembers(){
     const pending = !m.approved;
     return `
     <div class="rowitem${pending ? " pending" : ""}">
+      ${avatarHtml(m, 40)}
       <div class="rmain" style="cursor:default">
         <div class="rname">${esc(m.nickname)}
           ${m.joined_via === "invite" ? `<span title="주보 초대 가입">🎟️</span>` : ""}
@@ -2536,7 +2720,7 @@ function fmtDate(t){
 async function loadPosts(){
   const { data, error } = await db.from("posts")
     .select(`id, board, title, content, images, author_id, product_id, created_at, updated_at,
-             author:profiles!posts_author_id_fkey(id, nickname),
+             author:profiles!posts_author_id_fkey(id, nickname, avatar_url, badge),
              product:products(id, name),
              comments(count)`)
     .order("created_at", { ascending: false });
@@ -2599,8 +2783,8 @@ async function openPostView(id){
 
   $("pvMeta").innerHTML = `<span class="tag cat">${BOARD_META[p.board]?.label ?? p.board}</span>`;
   $("pvTitle").textContent = p.title;
-  $("pvAuthor").innerHTML = `<b>${p.author ? esc(p.author.nickname) : "탈퇴한 성도"}</b> ·
-    ${fmtDate(p.created_at)}${p.updated_at ? " · 수정됨" : ""}`;
+  $("pvAuthor").innerHTML = `${avatarHtml(p.author, 30)}<span><b>${p.author ? esc(p.author.nickname) : "탈퇴한 성도"}</b>${p.author ? repBadgeHtml(p.author) : ""} ·
+    ${fmtDate(p.created_at)}${p.updated_at ? " · 수정됨" : ""}</span>`;
 
   $("pvProduct").innerHTML = (p.board === "review" && p.product)
     ? `<span class="pv-product" onclick="closePostView(); openDetail('${p.product.id}')">
@@ -2635,7 +2819,7 @@ function closePostView(){
 async function loadComments(postId){
   const { data, error } = await db.from("comments")
     .select(`id, content, created_at, author_id,
-             author:profiles!comments_author_id_fkey(nickname)`)
+             author:profiles!comments_author_id_fkey(nickname, avatar_url)`)
     .eq("post_id", postId).order("created_at");
   if (error){ $("pvComments").innerHTML = ""; return; }
   const list = data ?? [];
@@ -2647,6 +2831,7 @@ async function loadComments(postId){
   }
   $("pvComments").innerHTML = list.map(c => `
     <div class="cmt">
+      ${avatarHtml(c.author, 32)}
       <div class="c-main">
         <span class="c-author">${c.author ? esc(c.author.nickname) : "탈퇴한 성도"}</span>
         <span class="c-date">${new Date(c.created_at).toLocaleString("ko-KR",
@@ -3400,9 +3585,9 @@ function openDetail(id){
   priceEl.textContent = fmtPrice(p.price, true);
   priceEl.classList.toggle("free", Number(p.price) === 0);
   $("dSeller").innerHTML = p.legacy
-    ? `<b>지난 바자회 나눔</b> · ${new Date(p.sold_at ?? p.created_at).toLocaleDateString("ko-KR", { year: "numeric", month: "long" })} 기록`
-    : `<b>${esc(p.seller?.nickname ?? "탈퇴한 성도")}</b> 님의 나눔 ·
-    ${new Date(p.created_at).toLocaleDateString("ko-KR", { month: "long", day: "numeric" })} 등록`;
+    ? `<span><b>지난 바자회 나눔</b> · ${new Date(p.sold_at ?? p.created_at).toLocaleDateString("ko-KR", { year: "numeric", month: "long" })} 기록</span>`
+    : `${avatarHtml(p.seller, 30)}<span><b>${esc(p.seller?.nickname ?? "탈퇴한 성도")}</b>${p.seller ? repBadgeHtml(p.seller) : ""} 님의 나눔 ·
+    ${new Date(p.created_at).toLocaleDateString("ko-KR", { month: "long", day: "numeric" })} 등록</span>`;
 
   const catLabel = p.category ? `${esc(p.category.emoji)} ${esc(p.category.name)}` : "🎁 미분류";
   $("dMeta").innerHTML = `
@@ -3823,10 +4008,13 @@ async function submitPost(e){
 }
 
 /* ─────────────────────────────────────────── 내 활동 ── */
-function openMy(){
+async function openMy(){
   myTab = "mine";
   openModal("myModal");
   switchMyTab("mine");
+  renderProfileHead();        // 캐시된 집계로 즉시 표시
+  await loadMemberStats();    // 최신 집계로 갱신
+  renderProfileHead();
 }
 function switchMyTab(tab){
   myTab = tab;

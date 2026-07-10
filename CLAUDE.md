@@ -72,11 +72,12 @@
 ## DB 스키마 (public)
 
 ### 테이블
-- **profiles** `(id, nickname, full_name, email, is_admin, approved, notice_email, notify_setup_done, joined_via)`
-  - `email`·`full_name` 컬럼은 일반 grant 차단(관리자 함수로만 조회 — PII). 가입 시 `handle_new_user` 트리거로 생성.
+- **profiles** `(id, nickname, full_name, email, is_admin, approved, notice_email, notify_setup_done, joined_via, avatar_url, badge, created_at)`
+  - `email`·`full_name` 컬럼은 일반 grant 차단(관리자 함수로만 조회 — PII). 가입 시 `handle_new_user` 트리거로 생성. 컬럼별 grant 방식(민감 컬럼은 grant 안 함).
   - `full_name`: 실명(관리자 승인 확인용, 다른 성도엔 비노출). `approved`: 관리자 승인 여부(기본 false, 기존 회원 전원 true).
   - `notice_email`: 공지 이메일 수신 동의(기본 false). `notify_setup_done`: 가입 후 알림 온보딩 완료 여부.
   - `joined_via`: 가입 경로 `email|google|invite`(기본 'email', handle_new_user가 provider로 분기, 주보 초대 가입은 edge에서 'invite').
+  - `avatar_url`: 프로필 사진 URL(공개 read, 본인 update). `badge`: 대표 배지 id(null=자동 최고 달성 배지, 공개 read·본인 update). 둘 다 `profiles_update_own`(auth.uid()=id)로 본인만 수정.
 - **categories** `(id, name, emoji, ...)` — 7개 시드. 무료나눔은 카테고리 아님(price=0이면 💚 무료나눔).
 - **products** `(id, name, price, status, description, images[], is_hot, seller_id, reserved_by, sold_at, donated_at, created_at, category_id, legacy)`
   - status: `판매중 | 예약중 | 판매완료`. `seller_id` nullable(탈퇴 익명화용).
@@ -106,7 +107,8 @@
 - `admin_rotate_invite()` — 관리자 주보 초대 코드 교체(랜덤 12자 생성·저장·반환). is_admin 검증. `_gen_invite_code()`(정의자, 혼동문자 제외 31자 알파벳) 사용.
 - `invite_status(p_code)` — 초대 코드 유효성만 반환(invite_enabled='true' && code 일치). 정의자·anon 실행 허용, **코드는 노출 안 함**. 프런트 배지/만료 판단용.
 - `complete_profile(p_full_name, p_nickname)` — 본인 실명·닉네임 저장(구글 로그인 후 프로필 완성). full_name UPDATE 권한이 없어 정의자 함수로 처리.
-- `get_my_profile()` — 본인 프로필 조회(full_name·notif_seen_at 포함). full_name은 SELECT 차단이라 프론트 `loadProfile`이 이 RPC로 실명 유무를 판단.
+- `get_my_profile()` — 본인 프로필 조회(full_name·notif_seen_at·avatar_url·badge·created_at 포함). full_name은 SELECT 차단이라 프론트 `loadProfile`이 이 RPC로 실명·프로필 정보 판단.
+- `member_stats()` — 성도별 활동 집계(sold_count·received_count·review_count·joined_year). **횟수·가입연도만**(금액·이메일 등 민감정보 없음). 정의자·authenticated 실행. 프론트가 1회 로드해 배지 계산(판매자·작성자 대표배지).
 - `_add_notif(user,type,title,body,link_kind,link_id)` — 인앱 알림 생성 헬퍼(정의자).
 - `notif_*()` 트리거 — 인앱 알림 생성(본인 행동엔 안 만듦, `is distinct from auth.uid()`): products(예약/취소/판매완료→판매자·구매자), comments(→글쓴이, 본인 제외), posts review(→판매자), reports·conversations 신고(→관리자), profiles 실명 채워짐(→관리자, 이메일 트리거와 별개).
 - `reserve_product(p_id)` / `cancel_reservation(p_id)` — 예약/취소. `is_approved()` 검증 + **셀프예약 차단**(seller=uid → OWN_PRODUCT). 내부에서 `set_config('app.allow_status_change','1')`로 status 변경 트리거 통과.
@@ -118,7 +120,7 @@
 - `on_message_insert()` — 메시지 삽입 시 대화방 요약·읽음 갱신 트리거.
 - `report_conversation(p_conv_id, p_reason)` — 참여자가 대화 신고(reported=true) + 관리자 알림.
 - `admin_resolve_chat(p_conv_id)` — 관리자가 신고 해제. (RLS UPDATE+RETURNING 충돌 회피용 전용 함수)
-- `admin_list_members()` — 관리자용 전체 성도 목록(실명·이메일·approved·`joined_via` 포함, 미승인 먼저 정렬).
+- `admin_list_members()` — 관리자용 전체 성도 목록(실명·이메일·approved·`joined_via`·`avatar_url` 포함, 미승인 먼저 정렬).
 - `admin_list_reported_chats()` — 관리자용 신고된 대화 목록.
 - `cleanup_old_chats()` — 판매완료 7일 후 대화 삭제 **+ 30일 지난 notifications 삭제**. **pg_cron으로 매일 04:00 실행** (`cron.schedule`).
 - `notify_*_webhook()` — products/reports/posts/messages 삽입 시 해당 Edge Function 호출(pg_net, `x-notify-secret` 헤더).
@@ -127,7 +129,8 @@
 > **RLS 요약(보안 개편 후)**: 읽기는 **로그인 우선** — products/posts/comments select = `auth.uid() is not null`(site_settings/categories만 공개). 쓰기(products·posts·comments·messages·favorites·reports·subscriptions insert, products update)는 **승인 필요** — `is_approved()` 조건 추가. 단 **본인 profiles UPDATE(알림 설정)는 승인 전에도 허용**. reserve/cancel/get_or_create_conversation/report_conversation RPC도 내부에서 `is_approved()` 검증.
 
 ### Storage
-- 버킷 `product-images` (public). 업로드 경로 `${user.id}/파일명`. 본인 폴더에만 업로드 가능(RLS).
+- 버킷 `product-images` (public). 업로드 경로 `${user.id}/파일명`. 정책: insert(authenticated), select(모두), update·delete(본인 owner_id 또는 admin).
+- **프로필 사진**: `${user.id}/avatar.jpg` (덮어쓰기 upsert). upsert는 존재 확인용 SELECT 정책 필요 → `product_images_select` 추가함. avatar_url엔 `?v=timestamp` 캐시버스팅.
 
 ---
 
@@ -159,7 +162,8 @@
 - 장터: 통계 배너 + 검색(placeholder "검색") + 카테고리 칩 + 정렬줄(최신/기부금순 + ↻새로고침 pill `.sort-refresh`). ↻는 검색창 밖·정렬 셀렉트 옆(모바일 잘림 방지).
 - 물품 상세 모달: 이미지, 예약/취소, 판매자에게 문의(채팅), 찜, 공유, 신고, 나눔후기(구매자·7일).
   - **이미지 전체화면 라이트박스**(`#lightbox`): 이미지 탭 시 검은 배경·원본비율(contain). 여러 장이면 좌우 화살표+하단 "n/N" 카운터+스와이프(scroll-snap). 닫기: ✕/배경탭/뒤로가기(`history.pushState`+`popstate`). 핀치줌 허용(`touch-action`). `openLightbox/lbSlide/closeLightbox/updateLbCounter`.
-- 내 활동 모달: 내 물품 / 예약한 물품 / 🧡 찜 탭.
+- 프로필 모달(드롭다운 "👤 프로필"): 상단 아바타(탭→사진 변경)·닉네임(✏️)·가입일, 나눔 요약(나눔·받은 나눔·후기, **금액 없음**), 🏅 배지 진열장(달성=컬러/미달성=흐림+툴팁, 달성 배지 클릭→대표 지정), 이어서 내 물품/예약한 물품/🧡 찜 탭.
+- 아바타: `avatarHtml(user,size)` 공용 헬퍼(사진 있으면 이미지, 로드 실패 시 이니셜 복귀). 표시 6곳 — 헤더칩·상세 판매자·게시글/댓글 작성자·채팅목록/방 상대·관리자 목록. 대표 배지는 상세 판매자·게시글 작성자 이름 옆.
 - 게시판: 공지 배너 + 카테고리 필터 + 글쓰기(사진 5장) + 글 상세(댓글).
 - 채팅: 목록 모달 / 채팅방 모달(Realtime, 신고 버튼, 비공개 안내) / 관리자 열람 모드.
 - 알림 설정 모달: 가입 직후 **필수 온보딩**(공지 이메일 + 카테고리별 물품 알림).
@@ -213,6 +217,7 @@ git add -A && git commit -m "설명" && git push
 - 8차: **실사용 긴급 수정 묶음** — 구글 로그인 GIS(`signInWithIdToken`+nonce, 카톡 등 실패 시 리다이렉트 폴백). [A]기부완료 단계(`donated_at`·`admin_set_donated`·판매내역 기부 토글·CSV 기부여부), [B]셀프예약 차단, [C]status 변경 판매자 전용(`enforce_status_change`+GUC, 관리자 `admin_set_status` 정정), [D]모바일 헤더(물품버튼 라벨·아이콘 44px·게시판 📋), [E]모바일 상세 스크롤(`overflow:hidden`→auto), [F]카카오톡 인앱(외부브라우저 배너·구글 안내·이미지 압축 폴백·IME `isComposing` 중복전송 가드).
 - 6차: **구글 로그인**(OAuth) — 인증 모달에 "구글로 계속하기"(+"또는 이메일로" 구분선), `signInWithOAuth({provider:'google', redirectTo:location.origin})`. OAuth 사용자는 실명이 없어 **프로필 완성 모달**(필수·닫기 불가, 승인 대기·온보딩보다 먼저)로 실명·닉네임 입력 → `complete_profile` RPC. `handle_new_user`가 provider별로 full_name 분기, `get_my_profile` RPC로 본인 full_name 판단, 승인 대기 알림 트리거를 INSERT(full_name 有)+full_name채움 UPDATE로 분기(이메일/OAuth 각 1회).
 - 9차: **장터 UI 다듬기** — 상세 이미지 전체화면 라이트박스(`#lightbox`, 검은배경·원본비율·좌우화살표·"n/N"카운터·스와이프, ✕/배경/뒤로가기 닫기, 핀치줌), ↻새로고침을 검색창 밖→정렬 옆 pill(`.sort-refresh`)로 이동(모바일 360px 검색창 잘림 해결), 검색 placeholder 이모지 제거("검색")·내부 렌즈 아이콘 제거.
+- 11차: **성도 프로필** — `profiles.avatar_url·badge`, 프로필 사진 업로드(256px 정사각 크롭·`avatar.jpg` upsert·캐시버스팅, `product_images_select`/`_update` 정책 추가), 아바타 표시 6곳(공용 `avatarHtml`, 이니셜 폴백), 프로필 화면(드롭다운 "👤 프로필": 아바타·닉네임·가입일·나눔 요약(금액 X)·배지 진열장), **기념 배지**(🌱첫나눔1·🥕나눔이웃5·🧺나눔일꾼15·💌마음전달 후기3·🏛️창립멤버 2026, 전부 횟수 기준), `member_stats()` RPC(횟수·가입연도만)로 대표배지 계산(자동 최고 or 본인 선택)해 상세 판매자·게시글 작성자 옆 표시.
 - 10차: **주보 QR 초대 가입** — 어르신용 주보 QR(`?invite=CODE`)로 접속 시 이메일 인증·관리자 승인 없이 즉시 가입·이용. DB(`profiles.joined_via`, `site_settings.invite_code/invite_enabled`, `admin_rotate_invite`/`invite_status` RPC, `settings_select`에서 invite_code 숨김), Edge Function `invite-signup`(코드 검증·admin.createUser·approved+invite), 프런트(회원가입 폼 🎟️ 배지/만료 안내, invite-signup→즉시 로그인→온보딩 직행), 관리자 성도관리 🎟️ 초대 블록(켜기/끄기·링크 복사·새 코드 교체·목록 🎟️), 인쇄용 QR(`docs/invite-qr.png` 당근색, `docs/make-invite-qr.py`). **초대는 기본 OFF** — 관리자가 성도 관리에서 켜야 동작.
 
 ### 수동 확인 대기 (실기기 필요 — 코드는 배포 완료)
