@@ -3284,7 +3284,7 @@ function renderDetailActions(p){
     }
     const statusLabel = { "판매중": "판매중으로 되돌리기", "예약중": "예약중으로 표시", "판매완료": "판매완료로 표시" };
     html += `<div class="manage-hint">📌 내 물품의 <b>상태 표시</b>예요. 교회에서 직접 약속한 경우
-      <b>'예약중으로 표시'</b>를 눌러 다른 성도의 헛걸음을 막아주세요.</div>
+      <b>'예약중으로 표시'</b>를 눌러 다른 성도님들의 원활한 예약을 도와주세요.</div>
     <div class="status-set">
       ${["판매중","예약중","판매완료"].map(s =>
         `<button class="${p.status === s ? "on" : ""}" onclick="setStatus('${p.id}','${s}')">${
