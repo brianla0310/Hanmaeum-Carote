@@ -207,6 +207,12 @@ git add -A && git commit -m "설명" && git push
 - 8차: **실사용 긴급 수정 묶음** — 구글 로그인 GIS(`signInWithIdToken`+nonce, 카톡 등 실패 시 리다이렉트 폴백). [A]기부완료 단계(`donated_at`·`admin_set_donated`·판매내역 기부 토글·CSV 기부여부), [B]셀프예약 차단, [C]status 변경 판매자 전용(`enforce_status_change`+GUC, 관리자 `admin_set_status` 정정), [D]모바일 헤더(물품버튼 라벨·아이콘 44px·게시판 📋), [E]모바일 상세 스크롤(`overflow:hidden`→auto), [F]카카오톡 인앱(외부브라우저 배너·구글 안내·이미지 압축 폴백·IME `isComposing` 중복전송 가드).
 - 6차: **구글 로그인**(OAuth) — 인증 모달에 "구글로 계속하기"(+"또는 이메일로" 구분선), `signInWithOAuth({provider:'google', redirectTo:location.origin})`. OAuth 사용자는 실명이 없어 **프로필 완성 모달**(필수·닫기 불가, 승인 대기·온보딩보다 먼저)로 실명·닉네임 입력 → `complete_profile` RPC. `handle_new_user`가 provider별로 full_name 분기, `get_my_profile` RPC로 본인 full_name 판단, 승인 대기 알림 트리거를 INSERT(full_name 有)+full_name채움 UPDATE로 분기(이메일/OAuth 각 1회).
 
+### 수동 확인 대기 (실기기 필요 — 코드는 배포 완료)
+- **구글 GIS 로그인**: Client ID 반영·배포됨(2026-07-10). Google Cloud Console → 승인된 JavaScript 원본에 `https://hanmaeumcarote.com` 등록 필요. One Tap 실패 시 자동으로 리다이렉트 방식 폴백되므로 깨지진 않음.
+- **카카오톡 인앱 브라우저**: 배너·외부 브라우저 열기 스킴(`kakaotalk://web/openExternal`) — 실제 카톡에서 확인 필요(UA 목킹으로 렌더만 검증됨).
+- **iOS 사파리**: 물품 상세 모달 스크롤 — 실기기에서 부드러운지 확인.
+- **Supabase 인증 메일 템플릿**(`docs/email-templates/` 3종): 대시보드 수동 붙여넣기 방식 — 적용했는지 확인.
+
 ### 알려진 한계 (의도적 결정)
 - **가입 승인제로 1차 방어**: 아무나 가입해도 관리자 승인 전엔 읽기만 가능(쓰기·예약·채팅·게시 전부 RLS 차단). 승인 없이는 실질 이용 불가.
 - 이메일 인증(Confirm email) **ON**(대시보드에서 켬). Auth Custom SMTP는 Brevo(smtp-relay.brevo.com, SMTP 키). 인증 메일 실패 시 가입이 500으로 떨어지므로 SMTP 상태 주의. 인증 한국어 템플릿은 `docs/email-templates/`. CAPTCHA 없음.
