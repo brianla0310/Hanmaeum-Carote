@@ -151,8 +151,9 @@
 
 **주요 화면/기능**
 - 헤더: 로고(당근+십자가 SVG), 물품 올리기(좁은 폭 ＋아이콘), 🔔 알림(빨간점·흔들림), 💬 채팅(안읽음 배지), 프로필 드롭다운.
-- 장터: 통계 배너 + 검색 + 카테고리 칩 + 정렬(최신/기부금순) + 물품 그리드(찜 하트).
+- 장터: 통계 배너 + 검색(placeholder "검색") + 카테고리 칩 + 정렬줄(최신/기부금순 + ↻새로고침 pill `.sort-refresh`). ↻는 검색창 밖·정렬 셀렉트 옆(모바일 잘림 방지).
 - 물품 상세 모달: 이미지, 예약/취소, 판매자에게 문의(채팅), 찜, 공유, 신고, 나눔후기(구매자·7일).
+  - **이미지 전체화면 라이트박스**(`#lightbox`): 이미지 탭 시 검은 배경·원본비율(contain). 여러 장이면 좌우 화살표+하단 "n/N" 카운터+스와이프(scroll-snap). 닫기: ✕/배경탭/뒤로가기(`history.pushState`+`popstate`). 핀치줌 허용(`touch-action`). `openLightbox/lbSlide/closeLightbox/updateLbCounter`.
 - 내 활동 모달: 내 물품 / 예약한 물품 / 🧡 찜 탭.
 - 게시판: 공지 배너 + 카테고리 필터 + 글쓰기(사진 5장) + 글 상세(댓글).
 - 채팅: 목록 모달 / 채팅방 모달(Realtime, 신고 버튼, 비공개 안내) / 관리자 열람 모드.
@@ -206,6 +207,7 @@ git add -A && git commit -m "설명" && git push
 - 7차: **인앱 알림 센터**(🔔) — `notifications` 테이블·정의자 트리거(예약·취소·판매완료·댓글·후기·신고·가입대기), 헤더 종+빨간점(`notif_seen_at`)+딸랑 흔들림(reduced-motion 대응), 알림 패널(미읽음 음영·상대시간·클릭 시 대상 열기·모두 읽음), Realtime 구독(INSERT), 30일 후 자동삭제. RLS 본인만, 클라이언트 insert 불가.
 - 8차: **실사용 긴급 수정 묶음** — 구글 로그인 GIS(`signInWithIdToken`+nonce, 카톡 등 실패 시 리다이렉트 폴백). [A]기부완료 단계(`donated_at`·`admin_set_donated`·판매내역 기부 토글·CSV 기부여부), [B]셀프예약 차단, [C]status 변경 판매자 전용(`enforce_status_change`+GUC, 관리자 `admin_set_status` 정정), [D]모바일 헤더(물품버튼 라벨·아이콘 44px·게시판 📋), [E]모바일 상세 스크롤(`overflow:hidden`→auto), [F]카카오톡 인앱(외부브라우저 배너·구글 안내·이미지 압축 폴백·IME `isComposing` 중복전송 가드).
 - 6차: **구글 로그인**(OAuth) — 인증 모달에 "구글로 계속하기"(+"또는 이메일로" 구분선), `signInWithOAuth({provider:'google', redirectTo:location.origin})`. OAuth 사용자는 실명이 없어 **프로필 완성 모달**(필수·닫기 불가, 승인 대기·온보딩보다 먼저)로 실명·닉네임 입력 → `complete_profile` RPC. `handle_new_user`가 provider별로 full_name 분기, `get_my_profile` RPC로 본인 full_name 판단, 승인 대기 알림 트리거를 INSERT(full_name 有)+full_name채움 UPDATE로 분기(이메일/OAuth 각 1회).
+- 9차: **장터 UI 다듬기** — 상세 이미지 전체화면 라이트박스(`#lightbox`, 검은배경·원본비율·좌우화살표·"n/N"카운터·스와이프, ✕/배경/뒤로가기 닫기, 핀치줌), ↻새로고침을 검색창 밖→정렬 옆 pill(`.sort-refresh`)로 이동(모바일 360px 검색창 잘림 해결), 검색 placeholder 이모지 제거("검색")·내부 렌즈 아이콘 제거.
 
 ### 수동 확인 대기 (실기기 필요 — 코드는 배포 완료)
 - **구글 GIS 로그인**: Client ID 반영·배포됨(2026-07-10). Google Cloud Console → 승인된 JavaScript 원본에 `https://hanmaeumcarote.com` 등록 필요. One Tap 실패 시 자동으로 리다이렉트 방식 폴백되므로 깨지진 않음.
