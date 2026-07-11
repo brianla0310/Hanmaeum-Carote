@@ -1142,6 +1142,10 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
       <span>📢 공지 이메일 받기</span>
       <input type="checkbox" id="noticeMailChk" />
     </label>
+    <label class="check-row">
+      <span>🔔 알림 소리 (채팅·알림 도착 시)</span>
+      <input type="checkbox" id="soundChk" onchange="toggleSound(this.checked)" />
+    </label>
     <hr style="border:none;border-top:1.5px dashed var(--line);margin:12px 0" />
     <label class="check-row" id="subAllRow">
       <span>🔔 모든 새 물품 알림 받기</span>
@@ -1790,6 +1794,14 @@ async function init(){
     if (e.target.files[0]) changeAvatar(e.target.files[0]);
     e.target.value = "";
   });
+  // 알림 소리: 첫 사용자 제스처에서 AudioContext unlock (브라우저 자동재생 정책)
+  ["pointerdown", "keydown", "touchstart"].forEach(ev =>
+    window.addEventListener(ev, unlockAudio, { passive: true }));
+  // 접속 하트비트: 탭 숨기면 정지, 다시 보이면 즉시 갱신+재개
+  document.addEventListener("visibilitychange", () => {
+    if (!session) return;
+    if (document.hidden) stopHeartbeat(); else startHeartbeat();
+  });
   setupKakao();   // 카카오톡 인앱 브라우저면 배너·구글 안내 표시
 }
 
@@ -1803,7 +1815,7 @@ function isReady(){ return !!session && !!profile && profile.approved === true; 
 async function handleAuthChange(event, s){
   if (event === "SIGNED_OUT"){
     profile = null; myFavs = new Set(); products = []; posts = [];
-    chatUnread = 0; teardownChatList(); teardownNotif();
+    chatUnread = 0; teardownChatList(); teardownNotif(); stopHeartbeat();
     renderHeader(); renderGrid(); renderGate();
     return;
   }
@@ -1838,6 +1850,7 @@ async function revealForSession(){
     setupNotifRealtime();
     if (hasUnseenNotif()) shakeBell();   // 로드 시 미확인 있으면 종 흔들림 1회
     updateTourBtn();
+    startHeartbeat();                    // 접속 하트비트 시작(last_seen_at)
     if (profile.notify_setup_done === false) openNotify(true);
     else setTimeout(maybeShowTourPrompt, 500);   // 온보딩 이미 끝난 사용자도 최초 1회 안내
     openPendingDeepLink();
@@ -2306,12 +2319,21 @@ function teardownChatList(){
 }
 async function softRefreshUnread(){
   if (!session) return;
+  const prevAt = new Map(convos.map(c => [c.id, c.last_at]));   // 이전 last_at 스냅샷
   const { data } = await db.from("conversations")
     .select("id, seller_id, buyer_id, last_at, seller_read_at, buyer_read_at");
-  convos = data ?? [];
+  const next = data ?? [];
+  // 새 수신 메시지 감지: last_at 전진 + 지금 안읽음(=상대가 보냄) + 현재 열린 방이 아님
+  const openId = curConv && curConv.id;
+  const gotIncoming = next.some(c => {
+    const p = prevAt.get(c.id);
+    return p && new Date(c.last_at) > new Date(p) && c.id !== openId && isConvUnread(c);
+  });
+  convos = next;
   chatUnread = convos.filter(isConvUnread).length;
   renderHeader();
   if (!$("chatListModal").classList.contains("hidden")) renderChatList();
+  if (gotIncoming) playChime();   // 다른 방에 상대 메시지 도착
 }
 
 /* ─────────────────────────────── 알림 센터 ── */
@@ -2344,6 +2366,53 @@ function shakeBell(){
   void bell.offsetWidth;              // reflow → 애니메이션 재시작
   bell.classList.add("bell-shake");
   setTimeout(() => bell.classList.remove("bell-shake"), 1100);
+}
+
+/* ── 알림 소리 (WebAudio 합성 2음 차임, 파일 없음) ── */
+let audioCtx = null;
+function unlockAudio(){
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+  } catch (e){ /* 오디오 미지원 무시 */ }
+}
+function soundOn(){ return localStorage.getItem("hmc_sound") !== "off"; }
+function toggleSound(on){
+  localStorage.setItem("hmc_sound", on ? "on" : "off");
+  if (on){ unlockAudio(); setTimeout(playChime, 60); }   // 켜면 미리듣기 한 번
+}
+
+/* ── 접속 하트비트 (last_seen_at): 접속 중이면 채팅 이메일 스킵용 ── */
+let lastSeenTimer = null;
+async function touchLastSeen(){
+  if (!session || document.hidden) return;
+  try {
+    await db.from("profiles").update({ last_seen_at: new Date().toISOString() })
+      .eq("id", session.user.id);
+  } catch (e){ /* 조용히 무시 */ }
+}
+function startHeartbeat(){
+  stopHeartbeat();
+  touchLastSeen();                                        // 즉시 1회(로그인·복귀 직후)
+  lastSeenTimer = setInterval(touchLastSeen, 120000);     // 보이는 동안 2분마다
+}
+function stopHeartbeat(){
+  if (lastSeenTimer){ clearInterval(lastSeenTimer); lastSeenTimer = null; }
+}
+function playChime(){
+  if (!soundOn() || !audioCtx || audioCtx.state !== "running") return;
+  const t0 = audioCtx.currentTime;
+  // A5 → D6: 부드럽게 올라가는 2음 (사인파 + 완만한 어택/감쇠)
+  [{ f: 880, at: 0 }, { f: 1174.66, at: 0.11 }].forEach(n => {
+    const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+    osc.type = "sine"; osc.frequency.value = n.f;
+    const s = t0 + n.at;
+    g.gain.setValueAtTime(0.0001, s);
+    g.gain.linearRampToValueAtTime(0.16, s + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, s + 0.34);
+    osc.connect(g); g.connect(audioCtx.destination);
+    osc.start(s); osc.stop(s + 0.4);
+  });
 }
 
 function notifTimeAgo(t){
@@ -2438,6 +2507,7 @@ function setupNotifRealtime(){
         if (notifications.length > 30) notifications.pop();
         updateBellDot();
         shakeBell();
+        playChime();   // 종 알림 새 도착
         if (!$("notifModal").classList.contains("hidden")) renderNotifList();
       })
     .subscribe();
@@ -2621,7 +2691,7 @@ function setupChatRoomRealtime(convId){
         if (li >= 0) curMsgs.splice(li, 1);
         curMsgs.push(m);
         renderMessages();
-        if (m.sender_id !== session.user.id) markConvRead(convId);
+        if (m.sender_id !== session.user.id){ markConvRead(convId); playChime(); }   // 상대 메시지만
       })
     .subscribe();
 }
@@ -4320,6 +4390,7 @@ async function openNotify(onboarding = false){
   $("subAll").checked = mySubs.some(s => s.category_id === null);
   // 온보딩에서는 공지 이메일을 추천값(켜짐)으로 보여주고, 저장 시 선택이 반영돼요
   $("noticeMailChk").checked = notifySetupMode ? true : (profile?.notice_email !== false);
+  $("soundChk").checked = soundOn();
   renderNotifyRows();
   openModal("notifyModal");
 }

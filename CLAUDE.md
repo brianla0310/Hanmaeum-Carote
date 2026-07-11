@@ -102,6 +102,7 @@
 - **notifications** `(id bigint, user_id→profiles cascade, type, title, body, link_kind, link_id, read, created_at)` — 인앱 알림. RLS: 본인 select + `read`만 update. **클라이언트 insert 불가**(정의자 트리거만 생성). index(user_id, created_at desc). realtime publication 포함. 30일 후 `cleanup_old_chats()`가 삭제.
   - `link_kind`: `product | post | conv | admin_members | admin_reports`. 프론트가 이걸로 대상 열기.
 - **profiles.notif_seen_at** timestamptz — 종을 마지막으로 연 시각(빨간 점 기준). 본인 update grant.
+- **profiles.last_seen_at** timestamptz default now() — 접속 하트비트(본인 update grant, SELECT는 미부여). 프런트가 로그인 직후·visibilitychange(보임)·2분마다(숨김 탭 정지) 갱신. notify-chat이 3분 이내면 채팅 이메일 스킵.
 
 ### 함수 (RPC / 트리거)
 - `is_admin()` / `is_approved()` — 관리자·승인 여부. SECURITY DEFINER STABLE. 쓰기 RLS·RPC 내부 검증에 사용.
@@ -149,6 +150,7 @@
   - `NOTIFY_SECRET` 헤더 검증. Brevo로 발송.
 - **notify-chat** — messages/채팅신고 웹훅 수신.
   - 새 메시지 → 상대방에게 알림(단, **상대가 직전에 이미 읽은 상태였을 때만 1통**. 안 읽은 게 쌓여있으면 재발송 안 함)
+  - **수신자가 최근 3분 이내 접속 중(`last_seen_at`)이면 이메일 스킵**(`skipped: recipient online`) — 인앱 알림·소리로 충분. online 체크가 email 체크보다 앞.
   - 대화 신고 → 관리자 전체.
 - **invite-signup** — 주보 QR 초대 가입(verify_jwt false, CORS). 입력 email/password/full_name/nickname/code. 검증: invite_enabled='true' && code 일치(불일치 403·사유 비노출) → banned 사전 체크(한국어) → `admin.createUser(email_confirm:true, metadata)` → profiles `approved=true, joined_via='invite'`. 중복 409, 짧은 비번 400. 성공 시 프런트가 signInWithPassword로 즉시 로그인.
 - **delete-account** — 본인 탈퇴. JWT 검증 후: 예약 해제 → 판매완료 익명화(seller_id=null, images=[]) → 나머지 물품 삭제 → **대화 삭제** → 스토리지 폴더 삭제 → 계정 삭제. CORS 포함.
@@ -225,6 +227,7 @@ git add -A && git commit -m "설명" && git push
 - 6차: **구글 로그인**(OAuth) — 인증 모달에 "구글로 계속하기"(+"또는 이메일로" 구분선), `signInWithOAuth({provider:'google', redirectTo:location.origin})`. OAuth 사용자는 실명이 없어 **프로필 완성 모달**(필수·닫기 불가, 승인 대기·온보딩보다 먼저)로 실명·닉네임 입력 → `complete_profile` RPC. `handle_new_user`가 provider별로 full_name 분기, `get_my_profile` RPC로 본인 full_name 판단, 승인 대기 알림 트리거를 INSERT(full_name 有)+full_name채움 UPDATE로 분기(이메일/OAuth 각 1회).
 - 9차: **장터 UI 다듬기** — 상세 이미지 전체화면 라이트박스(`#lightbox`, 검은배경·원본비율·좌우화살표·"n/N"카운터·스와이프, ✕/배경/뒤로가기 닫기, 핀치줌), ↻새로고침을 검색창 밖→정렬 옆 pill(`.sort-refresh`)로 이동(모바일 360px 검색창 잘림 해결), 검색 placeholder 이모지 제거("검색")·내부 렌즈 아이콘 제거.
 - 11차: **성도 프로필** — `profiles.avatar_url·badge`, 프로필 사진 업로드(256px 정사각 크롭·`avatar.jpg` upsert·캐시버스팅, `product_images_select`/`_update` 정책 추가), 아바타 표시 6곳(공용 `avatarHtml`, 이니셜 폴백), 프로필 화면(드롭다운 "👤 프로필": 아바타·닉네임·가입일·나눔 요약(금액 X)·배지 진열장), **기념 배지**(🌱첫나눔1·🥕나눔이웃5·🧺나눔일꾼15·💌마음전달 후기3·🏛️창립멤버 2026, 전부 횟수 기준), `member_stats()` RPC(횟수·가입연도만)로 대표배지 계산(자동 최고 or 본인 선택)해 상세 판매자·게시글 작성자 옆 표시.
+- 13차: **알림 소리 + 접속 중 이메일 스킵** — (A) WebAudio 합성 2음 차임(파일 없음, 첫 제스처에서 AudioContext unlock): 채팅 상대 메시지·종 알림 도착 시 재생, **내 메시지엔 X**(채팅방 핸들러 `sender!=me`, 목록 핸들러 `isConvUnread`+열린방 제외). 알림설정 모달 "🔔 알림 소리" 토글(`hmc_sound` localStorage, 기본 on). `playChime/unlockAudio/toggleSound`. (B) `profiles.last_seen_at` + 하트비트(`touchLastSeen`, 로그인·visibilitychange·2분, 숨김 정지) → notify-chat이 3분 이내면 이메일 스킵. 기존 종 흔들림·빨간점·채팅 배지 Realtime 동작 확인(정상).
 - 12차: **GDPR 개인정보 처리방침 + 눈높이 튜토리얼** — (A) `privacy.html`(정적, 로그인 불필요, 한국어+이탈리아어 요약), 랜딩/푸터/가입폼 링크, 가입 동의 체크박스 3경로 필수(이메일·QR=`#suConsent`, 구글=`#pcConsent`). (B) 코치마크 튜토리얼: 첫 방문(온보딩 직후·또는 기존 사용자 최초 1회) 안내 모달→`hmc_tour_seen` localStorage, 좌하단 "📖 사용법" 재실행 버튼(로그인+승인 시), 7단계(인사·＋올리기·검색/카테고리·물품카드·채팅·종·게시판) 스포트라이트+오렌지 크레용 타원(feTurbulence)+말풍선. 요소 없으면 자동 건너뜀·N 재계산, 모바일 말풍선 뷰포트 클램프, reduced-motion 시 회전/트랜지션 off. `TOUR_STEPS`/`startTour`/`tourShow`/`drawCrayon`/`positionBubble`.
 - 10차: **주보 QR 초대 가입** — 어르신용 주보 QR(`?invite=CODE`)로 접속 시 이메일 인증·관리자 승인 없이 즉시 가입·이용. DB(`profiles.joined_via`, `site_settings.invite_code/invite_enabled`, `admin_rotate_invite`/`invite_status` RPC, `settings_select`에서 invite_code 숨김), Edge Function `invite-signup`(코드 검증·admin.createUser·approved+invite), 프런트(회원가입 폼 🎟️ 배지/만료 안내, invite-signup→즉시 로그인→온보딩 직행), 관리자 성도관리 🎟️ 초대 블록(켜기/끄기·링크 복사·새 코드 교체·목록 🎟️), 인쇄용 QR(`docs/invite-qr.png` 당근색, `docs/make-invite-qr.py`). **초대는 기본 OFF** — 관리자가 성도 관리에서 켜야 동작.
 
