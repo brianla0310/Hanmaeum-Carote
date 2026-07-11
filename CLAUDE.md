@@ -173,7 +173,9 @@
 **아이콘/브랜딩**: 당근+십자가 SVG. 팔레트 — 몸통 `#E8641B`, 결 `#C24E12`, 잎 `#3E7C4F`/`#4C9260`,
 십자가 `#FDFBF6`, 배경 `#FBF1E4`. SVG 좌표는 index.html의 PLACEHOLDER 상수와 favicon.svg에 있음.
 
-**배포 파일**(저장소 루트): `index.html`, `favicon.svg`, `manifest.webmanifest`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, `og-image.png`(1200×630 링크 미리보기 카드).
+**배포 파일**(저장소 루트): `index.html`, `favicon.svg`, `manifest.webmanifest`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, `og-image.png`(1200×630 링크 미리보기 카드), `_redirects`(netlify.app→apex 301), `_headers`(보안 헤더).
+
+> **보안 헤더**(`_headers`, `/*`): CSP + X-Frame-Options DENY + X-Content-Type-Options nosniff + Referrer-Policy strict-origin-when-cross-origin + Permissions-Policy(camera/mic/geo/payment 전부 차단). **CSP 화이트리스트**(수정 시 실사이트 CSP violation 재검증 필수): script/style `'unsafe-inline'`(단일파일 인라인 앱), Supabase(`connect-src` https+**wss**, `img-src` https), 구글 GIS `accounts.google.com`(script/style/connect/frame), 폰트 `cdn.jsdelivr.net`(Pretendard)·`fonts.googleapis.com`+`fonts.gstatic.com`(Caveat), `img-src data: blob:`(크롭·PLACEHOLDER). 새 외부 출처 추가 시 반드시 해당 지시어에 등록.
 
 > **OG 미리보기**: `<head>`에 사이트 공통 Open Graph/Twitter 태그 + `og-image.png`(카톡·SNS 카드). 단일 파일 SPA라 크롤러가 JS 실행 전 정적 HTML만 읽으므로 **물품별 개별 미리보기는 불가**(전 링크 공통 카드). og-image.png는 로고 SVG를 캔버스로 렌더해 생성했음.
 
