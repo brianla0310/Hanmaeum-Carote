@@ -10,6 +10,9 @@
 밀라노 한마음교회의 사랑나눔 바자회 웹앱. 성도들이 물품을 올리고(가격이 아닌 **기부금**),
 예약·거래하며, 수익금은 전액 사랑나눔 헌금으로 사용됩니다. 게시판과 1:1 채팅도 있습니다.
 
+> **교회 정식 명칭(개인정보 처리 책임자)**: **Chiesa Cristiana Evangelica Hanmaum di Milano** (밀라노 한마음교회).
+> GDPR 개인정보 처리방침은 `privacy.html`(정적 페이지), 연락처 `hanmaeumcarote@gmail.com`.
+
 **기술 스택**
 - 프런트엔드: **단일 파일 `index.html`** (약 2,500줄, HTML+CSS+바닐라 JS 한 파일에 전부)
   - 외부 프레임워크 없음. supabase-js UMD 빌드가 파일에 **인라인**되어 있음(CDN 차단 대비).
@@ -173,7 +176,9 @@
 **아이콘/브랜딩**: 당근+십자가 SVG. 팔레트 — 몸통 `#E8641B`, 결 `#C24E12`, 잎 `#3E7C4F`/`#4C9260`,
 십자가 `#FDFBF6`, 배경 `#FBF1E4`. SVG 좌표는 index.html의 PLACEHOLDER 상수와 favicon.svg에 있음.
 
-**배포 파일**(저장소 루트): `index.html`, `favicon.svg`, `manifest.webmanifest`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, `og-image.png`(1200×630 링크 미리보기 카드), `_redirects`(netlify.app→apex 301), `_headers`(보안 헤더).
+**배포 파일**(저장소 루트): `index.html`, `favicon.svg`, `manifest.webmanifest`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, `og-image.png`(1200×630 링크 미리보기 카드), `_redirects`(netlify.app→apex 301), `_headers`(보안 헤더), `privacy.html`(GDPR 개인정보 처리방침, 로그인 없이 접근·랜딩/푸터/가입폼에서 링크).
+
+> **개인정보 동의**: `privacy.html`(한국어 본문+이탈리아어 요약, 사이트 톤). **가입 동의 체크박스 3경로 모두 필수** — 이메일·QR초대는 회원가입 폼 `#suConsent`(doSignup에서 검증, invite 분기보다 먼저), 구글 OAuth는 프로필 완성 모달 `#pcConsent`(saveProfileComplete에서 검증). 처리 책임자·수집항목·목적·법적근거·보관/삭제·제3자(Supabase/Netlify/Brevo/Cloudflare)·이용자 권리·쿠키 미사용 명시.
 
 > **보안 헤더**(`_headers`, `/*`): CSP + X-Frame-Options DENY + X-Content-Type-Options nosniff + Referrer-Policy strict-origin-when-cross-origin + Permissions-Policy(camera/mic/geo/payment 전부 차단). **CSP 화이트리스트**(수정 시 실사이트 CSP violation 재검증 필수): script/style `'unsafe-inline'`(단일파일 인라인 앱), Supabase(`connect-src` https+**wss**, `img-src` https), 구글 GIS `accounts.google.com`(script/style/connect/frame), 폰트 `cdn.jsdelivr.net`(Pretendard)·`fonts.googleapis.com`+`fonts.gstatic.com`(Caveat), `img-src data: blob:`(크롭·PLACEHOLDER). 새 외부 출처 추가 시 반드시 해당 지시어에 등록.
 

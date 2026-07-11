@@ -632,6 +632,7 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
       <button class="btn btn-primary btn-block btn-lg" onclick="openAuth('login')">로그인</button>
       <button class="btn btn-ghost btn-block" onclick="openAuth('signup')">회원가입</button>
     </div>
+    <a class="gate-privacy" href="privacy.html">개인정보 처리방침</a>
   </div>
 </section>
 
@@ -858,6 +859,7 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
 <footer>
   <div class="f-hand" id="footerHand">fatto con amore, a Milano</div>
   <p id="footerText">밀라노 한마음교회 사랑나눔 바자회 · 판매 수익금은 전액 사랑나눔 헌금으로 사용됩니다</p>
+  <a class="footer-privacy" href="privacy.html">개인정보 처리방침</a>
 </footer>
 
 <!-- ═══════════════ 로그인 / 회원가입 ═══════════════ -->
@@ -913,6 +915,10 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
         <div class="pwwrap"><input type="password" id="suPw" required minlength="6" autocomplete="new-password" placeholder="••••••" /><button type="button" class="pw-eye" onclick="togglePw('suPw', this)" aria-label="비밀번호 표시">👁️</button></div></div>
       <div class="field"><label>비밀번호 확인</label>
         <div class="pwwrap"><input type="password" id="suPw2" required minlength="6" autocomplete="new-password" placeholder="••••••" /><button type="button" class="pw-eye" onclick="togglePw('suPw2', this)" aria-label="비밀번호 표시">👁️</button></div></div>
+      <label class="consent-row">
+        <input type="checkbox" id="suConsent" required />
+        <span><a href="privacy.html" target="_blank" rel="noopener">개인정보 처리방침</a>에 동의합니다.</span>
+      </label>
       <div class="form-error" id="signupError"></div>
       <button class="btn btn-primary btn-block" type="submit">가입하기</button>
     </form>
@@ -933,6 +939,10 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
         <div class="hint">🔒 관리자 승인 확인용이에요. 다른 성도에게는 보이지 않아요.</div></div>
       <div class="field"><label>닉네임 (교회에서 부르는 이름)</label>
         <input type="text" id="pcNick" required maxlength="20" placeholder="예) 요셉, 김집사" /></div>
+      <label class="consent-row">
+        <input type="checkbox" id="pcConsent" required />
+        <span><a href="privacy.html" target="_blank" rel="noopener">개인정보 처리방침</a>에 동의합니다.</span>
+      </label>
       <div class="form-error" id="pcError"></div>
       <button class="btn btn-primary btn-block" type="submit" id="pcBtn">저장하고 시작하기</button>
     </form>
@@ -1101,6 +1111,17 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
 .gate-desc{ font-size:14px; color:var(--muted); font-weight:600; line-height:1.85; margin-bottom:24px; }
 .gate-desc b{ color:var(--ink); }
 .gate-actions{ display:flex; flex-direction:column; gap:8px; }
+.gate-privacy{ display:inline-block; margin-top:16px; font-size:12px; font-weight:700;
+  color:var(--muted); text-decoration:none; border-bottom:1px solid var(--line); }
+.gate-privacy:hover{ color:var(--carrot); }
+.footer-privacy{ display:inline-block; margin-top:10px; font-size:11.5px; font-weight:700;
+  color:var(--muted); text-decoration:underline; }
+.footer-privacy:hover{ color:var(--carrot); }
+/* 가입 동의 체크박스 */
+.consent-row{ display:flex; align-items:center; gap:9px; margin:2px 0 12px; cursor:pointer;
+  font-size:12.5px; font-weight:600; color:var(--muted); }
+.consent-row input{ accent-color:var(--carrot); width:17px; height:17px; flex:none; }
+.consent-row a{ color:var(--carrot-deep); font-weight:700; }
 .btn-lg{ padding:14px; font-size:15px; }
 .rowitem.pending{ background:#FFF7EA; box-shadow:inset 3px 0 0 var(--carrot); }
 .pending-tag{ background:var(--carrot); color:#fff; font-size:10px; font-weight:800;
@@ -3311,6 +3332,7 @@ async function saveProfileComplete(e){
   const name = $("pcName").value.trim();
   const nick = $("pcNick").value.trim();
   $("pcError").textContent = "";
+  if (!$("pcConsent").checked){ $("pcError").textContent = "개인정보 처리방침에 동의해주세요."; return; }
   if (!name){ $("pcError").textContent = "이름(실명)을 입력해주세요."; return; }
   if (!nick){ $("pcError").textContent = "닉네임을 입력해주세요."; return; }
   const btn = $("pcBtn"); btn.disabled = true; btn.textContent = "저장 중…";
@@ -3353,6 +3375,9 @@ async function doLogin(e){
 async function doSignup(e){
   e.preventDefault();
   $("signupError").textContent = "";
+  if (!$("suConsent").checked){
+    $("signupError").textContent = "개인정보 처리방침에 동의해주세요."; return;
+  }
   if ($("suPw").value !== $("suPw2").value){
     $("signupError").textContent = "비밀번호가 서로 달라요."; return;
   }
