@@ -579,6 +579,38 @@ main{ max-width:1180px; margin:0 auto; padding:30px 20px 80px; }
   opacity:0; pointer-events:none; transform:translateY(10px);
   transition:opacity .25s, transform .25s, background .15s;
 }
+
+/* 📖 사용법 튜토리얼 (코치마크) */
+.tour-btn{ position:fixed; bottom:22px; left:22px; z-index:50; background:var(--leaf); color:#fff;
+  border-radius:999px; padding:11px 17px; font-size:13px; font-weight:800; letter-spacing:-.2px;
+  box-shadow:0 6px 18px rgba(38,32,26,.28); display:flex; align-items:center; gap:6px; }
+.tour-btn:hover{ background:#356b44; }
+.tour-overlay{ position:fixed; inset:0; z-index:130; pointer-events:auto; }
+.tour-spot{ position:absolute; border-radius:16px; box-shadow:0 0 0 9999px rgba(30,22,14,.66);
+  transition:top .32s cubic-bezier(.4,0,.2,1), left .32s cubic-bezier(.4,0,.2,1), width .32s, height .32s;
+  pointer-events:none; }
+.tour-overlay.center .tour-spot{ left:50%; top:50%; width:0; height:0;
+  box-shadow:0 0 0 9999px rgba(30,22,14,.74); }
+.tour-crayon{ position:absolute; pointer-events:none; overflow:visible; z-index:1; }
+.tour-overlay.center .tour-crayon{ display:none; }
+.tour-bubble{ position:absolute; z-index:2; background:#fff; border-radius:18px;
+  padding:16px 16px 12px; width:min(300px, calc(100vw - 32px)); box-shadow:0 16px 44px rgba(38,32,26,.4);
+  transition:top .32s cubic-bezier(.4,0,.2,1), left .32s cubic-bezier(.4,0,.2,1); }
+.tour-step{ font-size:11px; font-weight:800; color:var(--carrot); letter-spacing:.6px; margin-bottom:6px; }
+.tour-text{ font-size:16px; font-weight:700; line-height:1.55; color:var(--ink); margin-bottom:14px;
+  word-break:keep-all; overflow-wrap:break-word; }
+.tour-nav{ display:flex; gap:8px; }
+.tour-nav-btn{ flex:1; padding:11px; border-radius:12px; font-weight:800; font-size:14px;
+  background:var(--butter); color:var(--muted); }
+.tour-nav-btn.primary{ background:var(--carrot); color:#fff; }
+.tour-nav-btn:disabled{ opacity:.35; cursor:default; }
+.tour-quit{ display:block; width:100%; margin-top:8px; padding:6px; font-size:12px; font-weight:700;
+  color:var(--muted); }
+.tour-quit:hover{ color:var(--danger); }
+@media (prefers-reduced-motion: reduce){
+  .tour-spot, .tour-bubble{ transition:none; }
+  .tour-crayon g{ transform:none !important; }
+}
 #scrollTopBtn.show{ opacity:1; pointer-events:auto; transform:translateY(0); }
 #scrollTopBtn:hover{ background:var(--carrot); }
 footer{
@@ -855,6 +887,39 @@ footer p{ font-size:12.5px; font-weight:600; margin-top:6px; }
 </main>
 
 <button id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="맨 위로">↑</button>
+
+<!-- 📖 사용법 다시보기 (로그인·승인 시 좌하단) -->
+<button id="tourBtn" class="tour-btn hidden" onclick="startTour()" aria-label="사용법 보기">📖 사용법</button>
+
+<!-- 눈높이 튜토리얼 코치마크 -->
+<div id="tourOverlay" class="tour-overlay hidden" aria-hidden="true">
+  <div id="tourSpot" class="tour-spot"></div>
+  <svg id="tourCrayon" class="tour-crayon" aria-hidden="true"></svg>
+  <div id="tourBubble" class="tour-bubble" role="dialog" aria-live="polite">
+    <div class="tour-step" id="tourStep">1 / 7</div>
+    <p class="tour-text" id="tourText"></p>
+    <div class="tour-nav">
+      <button id="tourPrev" class="tour-nav-btn" onclick="tourGo(-1)">이전</button>
+      <button id="tourNext" class="tour-nav-btn primary" onclick="tourGo(1)">다음</button>
+    </div>
+    <button class="tour-quit" onclick="endTour()">그만 볼래요</button>
+  </div>
+</div>
+
+<!-- 튜토리얼 시작 안내 (첫 방문) -->
+<div class="modal hidden" id="tourPromptModal">
+  <div class="backdrop" onclick="dismissTourPrompt()"></div>
+  <div class="panel"><div class="panel-pad" style="text-align:center">
+    <div style="font-size:52px;line-height:1;margin:6px 0 10px">🥕</div>
+    <h2 style="margin-bottom:8px">한마음 CAROTE가 처음이시죠?</h2>
+    <p style="font-size:14px;color:var(--muted);font-weight:600;margin-bottom:20px;line-height:1.7">
+      사용법을 하나씩 보여드릴까요?<br/>1분이면 충분해요!</p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn btn-primary btn-block btn-lg" onclick="acceptTourPrompt()">좋아요, 보여주세요!</button>
+      <button class="btn btn-ghost btn-block" onclick="dismissTourPrompt()">괜찮아요</button>
+    </div>
+  </div></div>
+</div>
 
 <footer>
   <div class="f-hand" id="footerHand">fatto con amore, a Milano</div>
@@ -1772,7 +1837,9 @@ async function revealForSession(){
     await loadNotifications();
     setupNotifRealtime();
     if (hasUnseenNotif()) shakeBell();   // 로드 시 미확인 있으면 종 흔들림 1회
+    updateTourBtn();
     if (profile.notify_setup_done === false) openNotify(true);
+    else setTimeout(maybeShowTourPrompt, 500);   // 온보딩 이미 끝난 사용자도 최초 1회 안내
     openPendingDeepLink();
   }
 }
@@ -1789,6 +1856,7 @@ function hideAppChrome(){
 // 로그인·승인 상태에 따라 랜딩 / 승인 대기 / 정상 앱 중 하나만 노출
 function renderGate(){
   $("emailCheckScreen").classList.add("hidden");
+  updateTourBtn();
   if (isReady()){
     $("landing").classList.add("hidden");
     $("waitingScreen").classList.add("hidden");
@@ -2024,6 +2092,144 @@ async function chooseBadge(id){
   toast(next ? "대표 배지를 설정했어요 🏅" : "대표 배지를 자동 선택으로 되돌렸어요");
 }
 
+/* ───────────────────────────────── 📖 눈높이 튜토리얼 (코치마크) ── */
+const TOUR_STEPS = [
+  { sel: null,          text: "주일 나눔 장터예요. 물건을 올리고, 마음에 들면 예약해요! 🥕" },
+  { sel: "#postBtn",    text: "안 쓰는 물건은 여기서 사진 찍어 올려요." },
+  { sel: ".toolbar",    text: "찾는 물건은 여기서 검색하거나, 종류별로 골라봐요." },
+  { sel: "#grid .card", text: "마음에 들면 🤍로 찜하고, 눌러서 자세히 보고 예약해요." },
+  { sel: "#chatBtn",    text: "판매자와 1:1 대화는 여기서 — 둘만의 비공개 채팅이에요." },
+  { sel: "#bellBtn",    text: "나에게 온 소식(예약·댓글)은 이 종이 알려드려요." },
+  { sel: "#vtBoard",    text: "교회 소식과 나눔 후기는 게시판에서 만나요!\n천천히 둘러보세요 🥕" },
+];
+let tourList = [];   // 실제 표시할 단계(대상 요소가 있는 것만)
+let tourIdx = 0;
+
+function updateTourBtn(){
+  const btn = $("tourBtn");
+  if (btn) btn.classList.toggle("hidden", !isReady());
+}
+
+function maybeShowTourPrompt(){
+  if (!isReady() || localStorage.getItem("hmc_tour_seen")) return;
+  // 다른 모달이 열려 있으면 건너뜀(언제든 📖 버튼으로 실행 가능)
+  if ([...document.querySelectorAll(".modal")].some(m => !m.classList.contains("hidden"))) return;
+  openModal("tourPromptModal");
+}
+function acceptTourPrompt(){
+  localStorage.setItem("hmc_tour_seen", "1");
+  closeModal("tourPromptModal");
+  startTour();
+}
+function dismissTourPrompt(){
+  localStorage.setItem("hmc_tour_seen", "1");
+  closeModal("tourPromptModal");
+}
+
+function startTour(){
+  if (!isReady()) return;
+  if (typeof switchView === "function") switchView("market");   // 장터 화면 보장
+  [...document.querySelectorAll(".modal")].forEach(m => m.classList.add("hidden"));
+  document.querySelector(".dropdown")?.remove();
+  document.body.style.overflow = "";
+  tourList = TOUR_STEPS.filter(s => !s.sel || document.querySelector(s.sel));   // 있는 단계만
+  tourIdx = 0;
+  $("tourOverlay").classList.remove("hidden");
+  window.addEventListener("resize", tourReposition);
+  tourShow();
+}
+function endTour(){
+  $("tourOverlay").classList.add("hidden");
+  window.removeEventListener("resize", tourReposition);
+}
+function tourGo(dir){
+  const n = tourIdx + dir;
+  if (n < 0) return;
+  if (n >= tourList.length){ endTour(); return; }
+  tourIdx = n; tourShow();
+}
+
+function tourShow(){
+  const step = tourList[tourIdx];
+  $("tourStep").textContent = `${tourIdx + 1} / ${tourList.length}`;
+  $("tourText").textContent = step.text;
+  $("tourPrev").disabled = tourIdx === 0;
+  $("tourNext").textContent = tourIdx === tourList.length - 1 ? "다 봤어요 🥕" : "다음";
+
+  const el = step.sel ? document.querySelector(step.sel) : null;
+  const overlay = $("tourOverlay");
+  if (!el){
+    overlay.classList.add("center");
+    $("tourCrayon").innerHTML = "";
+    positionBubble(null);
+    return;
+  }
+  overlay.classList.remove("center");
+  const r0 = el.getBoundingClientRect();
+  const vh = window.innerHeight;
+  if (r0.top < 70 || r0.bottom > vh - 90){   // 화면 밖이면 스크롤로 가져오기
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+    setTimeout(() => paintTarget(el), reduce ? 30 : 340);
+  } else {
+    paintTarget(el);
+  }
+}
+
+function paintTarget(el){
+  if ($("tourOverlay").classList.contains("hidden")) return;
+  const r = el.getBoundingClientRect(), pad = 8;
+  const x = r.left - pad, y = r.top - pad, w = r.width + pad * 2, h = r.height + pad * 2;
+  const spot = $("tourSpot");
+  spot.style.left = x + "px"; spot.style.top = y + "px";
+  spot.style.width = w + "px"; spot.style.height = h + "px";
+  drawCrayon(x, y, w, h);
+  positionBubble({ x, y, w, h });
+}
+
+// 오렌지 크레용 질감 타원 2겹(삐뚤·끝 안 닫힘·미세 회전). feTurbulence로 손그림 느낌.
+function drawCrayon(x, y, w, h){
+  const svg = $("tourCrayon"), m = 14;   // 변위 여백
+  svg.style.left = (x - m) + "px"; svg.style.top = (y - m) + "px";
+  const W = w + m * 2, H = h + m * 2;
+  svg.setAttribute("width", W); svg.setAttribute("height", H);
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const cx = W / 2, cy = H / 2, rx = w / 2 + 3, ry = h / 2 + 3;
+  const rot = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : -2.5;
+  const dash = Math.round((rx + ry) * 3);
+  svg.innerHTML =
+    `<defs><filter id="tourRough"><feTurbulence type="turbulence" baseFrequency="0.05" numOctaves="2" seed="7" result="n"/>`
+    + `<feDisplacementMap in="SourceGraphic" in2="n" scale="5"/></filter></defs>`
+    + `<g filter="url(#tourRough)" transform="rotate(${rot} ${cx} ${cy})" fill="none" stroke="#E8641B" stroke-linecap="round">`
+    + `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" stroke-width="4" stroke-dasharray="${dash} 26"/>`
+    + `<ellipse cx="${cx + 2}" cy="${cy + 1}" rx="${rx - 3}" ry="${ry - 2}" stroke-width="2.5" stroke-opacity=".65" stroke-dasharray="${dash} 40" transform="rotate(3 ${cx} ${cy})"/>`
+    + `</g>`;
+}
+
+// 말풍선을 대상 아래(공간 없으면 위)에, 화면 밖으로 안 나가게 클램프(모바일 대응)
+function positionBubble(rect){
+  const bub = $("tourBubble");
+  const bw = bub.offsetWidth, bh = bub.offsetHeight;
+  const vw = window.innerWidth, vh = window.innerHeight, margin = 12;
+  let left, top;
+  if (!rect){
+    left = (vw - bw) / 2; top = (vh - bh) / 2;
+  } else {
+    left = rect.x + rect.w / 2 - bw / 2;
+    top = (rect.y + rect.h + bh + 16 < vh) ? rect.y + rect.h + 14 : rect.y - bh - 14;
+  }
+  left = Math.max(margin, Math.min(left, vw - bw - margin));
+  top  = Math.max(margin, Math.min(top,  vh - bh - margin));
+  bub.style.left = left + "px"; bub.style.top = top + "px";
+}
+
+function tourReposition(){
+  if ($("tourOverlay").classList.contains("hidden")) return;
+  const step = tourList[tourIdx];
+  const el = step && step.sel ? document.querySelector(step.sel) : null;
+  if (el) paintTarget(el); else positionBubble(null);
+}
+
 function renderHeader(){
   const el = $("headerActions");
   if (!session || !profile){
@@ -2040,7 +2246,7 @@ function renderHeader(){
   el.innerHTML = `
     <button class="btn btn-primary" id="postBtn" onclick="openPost()"><span>＋</span><span class="pb-text"> 물품 올리기</span></button>
     <button class="icon-btn" id="bellBtn" onclick="openNotifPanel()" aria-label="알림" title="알림"><span>🔔</span><span class="notif-dot hidden" id="bellDot"></span></button>
-    <button class="icon-btn" onclick="openChatList()" aria-label="채팅" title="채팅">💬${
+    <button class="icon-btn" id="chatBtn" onclick="openChatList()" aria-label="채팅" title="채팅">💬${
       chatUnread > 0 ? `<span class="chat-badge">${chatUnread > 99 ? "99+" : chatUnread}</span>` : ""}</button>
     <button class="profile-chip" onclick="toggleDropdown()">
       ${avatarHtml(profile)}<span class="pc-name">${esc(profile.nickname)}</span>
@@ -4177,6 +4383,7 @@ async function saveSubs(){
   toast(wasSetup
     ? "설정 완료! 한마음 CAROTE에 오신 걸 환영해요 🥕"
     : (want.size || noticeOn ? "알림 설정을 저장했어요" : "알림을 모두 해제했어요"));
+  if (wasSetup) setTimeout(maybeShowTourPrompt, 700);   // 온보딩 직후 튜토리얼 안내
 }
 
 /* ─────────────────────────────────────────── 관리자 ── */
