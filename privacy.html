@@ -8,16 +8,18 @@
 <meta name="robots" content="all" />
 <link rel="icon" type="image/svg+xml" href="favicon.svg" />
 <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&display=swap" rel="stylesheet" />
+<link rel="preload" href="fonts/PretendardKR.subset.woff2" as="font" type="font/woff2" crossorigin />
 <style>
+  @font-face{ font-family:"Pretendard"; font-weight:400 800; font-display:swap;
+    src:url("fonts/PretendardKR.subset.woff2") format("woff2"); }
+  @font-face{ font-family:"Caveat"; font-weight:600; font-display:swap;
+    src:url("fonts/caveat-600.woff2") format("woff2"); }
   :root{
     --carrot:#E8641B; --carrot-deep:#C94F10; --carrot-soft:#FFE9D6;
     --leaf:#3E7C4F; --ink:#26201A; --muted:#8A7F70; --paper:#FDFBF6;
     --card:#FFFFFF; --line:#EDE5D8; --butter:#FBF1E4;
     --shadow-card:0 10px 30px rgba(60,40,20,.08);
-    --font-body:"Pretendard Variable",Pretendard,-apple-system,"Noto Sans KR",sans-serif;
+    --font-body:"Pretendard",-apple-system,"Noto Sans KR",sans-serif;
   }
   *{ box-sizing:border-box; margin:0; padding:0; }
   body{ background:var(--butter); color:var(--ink); font-family:var(--font-body);
