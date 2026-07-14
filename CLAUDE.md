@@ -16,7 +16,7 @@
 **기술 스택**
 - 프런트엔드: **단일 파일 `index.html`** (약 2,500줄, HTML+CSS+바닐라 JS 한 파일에 전부)
   - 외부 프레임워크 없음. supabase-js UMD 빌드가 파일에 **인라인**되어 있음(CDN 차단 대비).
-  - 배포: GitHub `main` 브랜치 push → **Netlify 자동 배포**.
+  - 배포: GitHub `main` 브랜치 push → **Cloudflare Pages 자동 배포**. (구 Netlify에서 이전)
 - 백엔드: **Supabase** (프로젝트 ref `qvjkbpqoztptemympwxy`, eu-central-1)
   - Postgres + RLS, Auth, Storage, Edge Functions, Realtime.
 - 이메일: **Brevo** API (발신 `hanmaeumcarote@gmail.com`, Gmail 개별 발신자 인증).
@@ -48,8 +48,9 @@
 
 | 항목 | 값 |
 |---|---|
-| 서비스 도메인 | `https://hanmaeumcarote.com` (Cloudflare 구매, DNS only로 Netlify 연결) |
-| www 처리 | `www.hanmaeumcarote.com` → apex로 301 리다이렉트 (Netlify) |
+| 서비스 도메인 | `https://hanmaeumcarote.com` (Cloudflare 구매, **Cloudflare Pages 호스팅**) |
+| 미리보기 도메인 | `hanmaeumcarote.pages.dev` (→ apex 캐노니컬 301은 대시보드 Redirect Rule로 설정) |
+| www 처리 | `www.hanmaeumcarote.com` → apex로 301 리다이렉트 (Cloudflare Redirect Rule/DNS) |
 | Supabase URL | `https://qvjkbpqoztptemympwxy.supabase.co` |
 | Supabase ref | `qvjkbpqoztptemympwxy` (eu-central-1) |
 | anon publishable key | `sb_publishable_7D5ucUDeHKp6fM0DMfctLw_4VVHs053` (index.html에 삽입됨) |
@@ -178,9 +179,9 @@
 **아이콘/브랜딩**: 당근+십자가 SVG. 팔레트 — 몸통 `#E8641B`, 결 `#C24E12`, 잎 `#3E7C4F`/`#4C9260`,
 십자가 `#FDFBF6`, 배경 `#FBF1E4`. SVG 좌표는 index.html의 PLACEHOLDER 상수와 favicon.svg에 있음.
 
-**배포 파일**(저장소 루트): `index.html`, `favicon.svg`, `manifest.webmanifest`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, `og-image.png`(1200×630 링크 미리보기 카드), `_redirects`(netlify.app→apex 301), `_headers`(보안 헤더), `privacy.html`(GDPR), `fonts/`(**self-host** Pretendard 가변 한글서브셋 woff2 1.78MB + Caveat 600 51KB).
+**배포 파일**(저장소 루트): `index.html`, `favicon.svg`, `manifest.webmanifest`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, `og-image.png`(1200×630 링크 미리보기 카드), `_redirects`(Cloudflare Pages용 — 경로 기반만; pages.dev→apex 캐노니컬은 대시보드 Redirect Rule로), `_headers`(보안 헤더), `privacy.html`(GDPR), `fonts/`(**self-host** Pretendard 가변 한글서브셋 woff2 1.78MB + Caveat 600 51KB).
 
-> **개인정보 동의**: `privacy.html`(한국어 본문+이탈리아어 요약, 사이트 톤). **가입 동의 체크박스 3경로 모두 필수** — 이메일·QR초대는 회원가입 폼 `#suConsent`(doSignup에서 검증, invite 분기보다 먼저), 구글 OAuth는 프로필 완성 모달 `#pcConsent`(saveProfileComplete에서 검증). 처리 책임자·수집항목·목적·법적근거·보관/삭제·제3자(Supabase/Netlify/Brevo/Cloudflare)·이용자 권리·쿠키 미사용 명시.
+> **개인정보 동의**: `privacy.html`(한국어 본문+이탈리아어 요약, 사이트 톤). **가입 동의 체크박스 3경로 모두 필수** — 이메일·QR초대는 회원가입 폼 `#suConsent`(doSignup에서 검증, invite 분기보다 먼저), 구글 OAuth는 프로필 완성 모달 `#pcConsent`(saveProfileComplete에서 검증). 처리 책임자·수집항목·목적·법적근거·보관/삭제·제3자(Supabase/Cloudflare/Brevo)·이용자 권리·쿠키 미사용 명시.
 
 > **보안 헤더**(`_headers`, `/*`): CSP + X-Frame-Options DENY + X-Content-Type-Options nosniff + Referrer-Policy strict-origin-when-cross-origin + Permissions-Policy(camera/mic/geo/payment 전부 차단). **CSP 화이트리스트**(수정 시 실사이트 CSP violation 재검증 필수): script/style `'unsafe-inline'`(단일파일 인라인 앱), Supabase(`connect-src` https+**wss**, `img-src` https), 구글 GIS `accounts.google.com`(script/style/connect/frame), 폰트는 **self-host**(`font-src 'self'`, CDN 미사용 — 이탈리아 CDN 차단 대비), `img-src data: blob:`(크롭·PLACEHOLDER). 새 외부 출처 추가 시 반드시 해당 지시어에 등록.
 
@@ -201,7 +202,7 @@ node --check /tmp/app.js
 #    - launch(args=['--ignore-certificate-errors'])
 #    - 테스트 계정은 @gmail.com, 끝나면 auth.users에서 삭제
 
-# 3. 배포: 커밋 + push → Netlify 자동 배포
+# 3. 배포: 커밋 + push → Cloudflare Pages 자동 배포
 git add -A && git commit -m "설명" && git push
 ```
 
@@ -220,7 +221,7 @@ git add -A && git commit -m "설명" && git push
 - 1차: 비밀번호 토글/변경, 찜하기, 정렬, 신고, 회원탈퇴, PWA.
 - 2차: 게시판(공지/자유/후기, 댓글, 공지 이메일), 사이트 문구 편집, 성도 관리(강제탈퇴·재가입차단), 가입 후 알림 온보딩.
 - 3차: 1:1 채팅(Realtime, 안읽음 배지, 첫 메시지만 이메일, 신고 시 관리자 열람, 7일 후 자동삭제).
-- 4차: 관리자 전체화면 뷰 개편(좌측 사이드바/모바일 가로 탭), 판매내역 섹션(과거기록 `legacy`·CSV 내보내기), **커스텀 도메인 `hanmaeumcarote.com` 연결**(Cloudflare DNS only→Netlify) + Brevo 도메인 인증(SPF/DKIM).
+- 4차: 관리자 전체화면 뷰 개편(좌측 사이드바/모바일 가로 탭), 판매내역 섹션(과거기록 `legacy`·CSV 내보내기), **커스텀 도메인 `hanmaeumcarote.com` 연결**(Cloudflare DNS only→Netlify, 이후 Cloudflare Pages로 이전) + Brevo 도메인 인증(SPF/DKIM).
 - 5차: **보안 개편** — 가입 승인제(`approved`·실명 `full_name`·`admin_approve_member`), 로그인 우선 랜딩(비로그인 랜딩·읽기 RLS `auth.uid() is not null`), 쓰기 RLS·RPC에 `is_approved()`, 승인 대기 화면, 관리자 승인 UI(대기 강조·승인 버튼), 가입 대기·승인 완료 이메일(notify E/F), "로그인 상태 유지" 세션 옵션(sessionStorage 어댑터), 딥링크 로그인 후 이어열기, 이메일 인증 안내·재발송. Supabase 인증 메일 한국어 템플릿(`docs/email-templates/`). 모금 목표 게이지(`goal_enabled/goal_amount`).
 - 7차: **인앱 알림 센터**(🔔) — `notifications` 테이블·정의자 트리거(예약·취소·판매완료·댓글·후기·신고·가입대기), 헤더 종+빨간점(`notif_seen_at`)+딸랑 흔들림(reduced-motion 대응), 알림 패널(미읽음 음영·상대시간·클릭 시 대상 열기·모두 읽음), Realtime 구독(INSERT), 30일 후 자동삭제. RLS 본인만, 클라이언트 insert 불가.
 - 8차: **실사용 긴급 수정 묶음** — 구글 로그인 GIS(`signInWithIdToken`+nonce, 카톡 등 실패 시 리다이렉트 폴백). [A]기부완료 단계(`donated_at`·`admin_set_donated`·판매내역 기부 토글·CSV 기부여부), [B]셀프예약 차단, [C]status 변경 판매자 전용(`enforce_status_change`+GUC, 관리자 `admin_set_status` 정정), [D]모바일 헤더(물품버튼 라벨·아이콘 44px·게시판 📋), [E]모바일 상세 스크롤(`overflow:hidden`→auto), [F]카카오톡 인앱(외부브라우저 배너·구글 안내·이미지 압축 폴백·IME `isComposing` 중복전송 가드).
