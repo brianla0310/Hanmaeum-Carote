@@ -297,10 +297,11 @@ main{ max-width:1180px; margin:0 auto; padding:30px 20px 80px; }
 .pill.st-selling::before{ background:var(--leaf); }
 .pill.st-reserved::before{ background:var(--carrot); }
 .pill.hot{
-  background:var(--carrot); color:#fff; position:absolute; bottom:10px; right:10px;
+  background:var(--carrot); color:#fff;
   box-shadow:0 3px 10px rgba(232,100,27,.5);
   animation:wiggle 1.2s ease-in-out infinite;
 }
+@media (prefers-reduced-motion: reduce){ .pill.hot{ animation:none; } }
 @keyframes wiggle{ 0%,100%{ transform:rotate(-3deg); } 50%{ transform:rotate(3deg) scale(1.06); } }
 .pill.count{
   background:rgba(38,32,26,.55); color:#fff; position:absolute; bottom:10px; left:10px;
@@ -3947,9 +3948,11 @@ function renderGrid(){
       <div class="thumb">
         <img src="${esc(img)}" alt="${esc(p.name)}" loading="lazy"
              onerror="this.src='${PLACEHOLDER}'" />
-        <div class="badges"><span class="pill ${statusClass(p.status)}">${esc(p.status)}</span></div>
+        <div class="badges">
+          <span class="pill ${statusClass(p.status)}">${esc(p.status)}</span>
+          ${p.is_hot && p.status !== "판매완료" ? `<span class="pill hot">🔥 인기</span>` : ""}
+        </div>
         ${p.images && p.images.length > 1 ? `<span class="pill count">${ic("camera","ic-16")} ${p.images.length}</span>` : ""}
-        ${p.is_hot && p.status !== "판매완료" ? `<span class="pill hot">🔥 인기</span>` : ""}
         <button class="fav-btn ${myFavs.has(p.id) ? "on" : ""}" onclick="event.stopPropagation(); toggleFav('${p.id}')"
           aria-label="찜">${ic(myFavs.has(p.id) ? "heart-fill" : "heart", 20)}</button>
       </div>
