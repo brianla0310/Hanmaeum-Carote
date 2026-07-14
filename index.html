@@ -4606,11 +4606,17 @@ async function loadAdminStats(){
   const sold = products.filter(p => p.status === "판매완료");
   const total = products.filter(p => p.donated_at).reduce((s, p) => s + (Number(p.price) || 0), 0);
   const { count } = await db.from("profiles").select("id", { count: "exact", head: true });
+  // 접속 통계(last_seen_at 기반, 정의자 RPC)
+  let online = { today: "-", week: "-" };
+  const { data: on } = await db.rpc("admin_online_stats");
+  if (on && on[0]) online = on[0];
   $("adminStats").innerHTML = `
     <div class="stat-box"><div class="n">€${total.toLocaleString()}</div><div class="l">모인 헌금</div></div>
     <div class="stat-box"><div class="n">${products.length}</div><div class="l">전체 물품</div></div>
     <div class="stat-box"><div class="n">${sold.length}</div><div class="l">나눔 완료</div></div>
-    <div class="stat-box"><div class="n">${count ?? "-"}</div><div class="l">가입 성도</div></div>`;
+    <div class="stat-box"><div class="n">${count ?? "-"}</div><div class="l">가입 성도</div></div>
+    <div class="stat-box"><div class="n">${online.today}</div><div class="l">오늘 접속</div></div>
+    <div class="stat-box"><div class="n">${online.week}</div><div class="l">최근 7일 접속</div></div>`;
 }
 
 function fillSettingsForm(){
