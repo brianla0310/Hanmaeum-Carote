@@ -809,9 +809,9 @@ footer p{ font-size:var(--fs-cap); font-weight:600; margin-top:6px; }
     <div class="chips" id="chips"></div>
     <div class="sortrow">
       <select id="sortSel" onchange="setSort(this.value)" aria-label="정렬 방식">
-        <option value="new">✨ 최신순</option>
-        <option value="priceAsc">💶 낮은 기부금순</option>
-        <option value="priceDesc">💎 높은 기부금순</option>
+        <option value="new">최신순</option>
+        <option value="priceAsc">낮은 기부금순</option>
+        <option value="priceDesc">높은 기부금순</option>
       </select>
       <button class="sort-refresh" id="refreshBtn" title="새로고침" aria-label="새로고침"><svg class="ic ic-16" aria-hidden="true"><use href="#i-refresh"></use></svg></button>
     </div>
@@ -1786,6 +1786,13 @@ function esc(s){ return String(s ?? "").replace(/[&<>"']/g,
 function ic(name, size){
   const s = size ? ` style="width:${size}px;height:${size}px"` : "";
   return `<svg class="ic" aria-hidden="true"${s}><use href="#i-${name}"></use></svg>`;
+}
+// 카테고리 라벨: 이모지가 있으면 "이모지 이름", 없으면(공백/삭제) "이름"만 — 앞뒤 빈칸 없이.
+function catText(cat, fallback = "미분류"){
+  if (!cat) return fallback;
+  const e = String(cat.emoji ?? "").trim();
+  const n = esc(cat.name ?? "");
+  return e ? `${esc(e)} ${n}` : n;
 }
 function toast(msg, type="ok"){
   const t = document.createElement("div");
@@ -3895,7 +3902,7 @@ function renderChips(){
   el.innerHTML =
     chip("all", "전체") +
     chip("free", "💚 무료나눔", "leaf") +
-    categories.map(c => chip(c.id, `${esc(c.emoji)} ${esc(c.name)}`)).join("");
+    categories.map(c => chip(c.id, catText(c))).join("");
 }
 
 function applyFilter(key){
@@ -3934,7 +3941,7 @@ function renderGrid(){
   }
   grid.innerHTML = list.map(p => {
     const img = (p.images && p.images[0]) || PLACEHOLDER;
-    const catLabel = p.category ? `${esc(p.category.emoji)} ${esc(p.category.name)}` : "🎁 미분류";
+    const catLabel = catText(p.category, "🎁 미분류");
     return `
     <article class="card ${p.status === "판매완료" ? "sold" : ""}" onclick="openDetail('${p.id}')">
       <div class="thumb">
@@ -3974,7 +3981,7 @@ function openDetail(id){
     : `${avatarHtml(p.seller, 30)}<span><b>${esc(p.seller?.nickname ?? "탈퇴한 성도")}</b>${p.seller ? repBadgeHtml(p.seller) : ""} 님의 나눔 ·
     ${new Date(p.created_at).toLocaleDateString("ko-KR", { month: "long", day: "numeric" })} 등록</span>`;
 
-  const catLabel = p.category ? `${esc(p.category.emoji)} ${esc(p.category.name)}` : "🎁 미분류";
+  const catLabel = catText(p.category, "🎁 미분류");
   $("dMeta").innerHTML = `
     <span class="tag cat" onclick="closeDetail(); applyFilter('${p.category_id ?? "all"}')">${catLabel}</span>
     <span class="tag ${statusClass(p.status)}">${esc(p.status)}</span>
@@ -4260,7 +4267,7 @@ async function deleteProduct(id){
 /* ─────────────────────────────────── post (등록/수정) ── */
 function renderCategoryOptions(){
   $("pCategory").innerHTML = categories.map(c =>
-    `<option value="${c.id}">${esc(c.emoji)} ${esc(c.name)}</option>`).join("");
+    `<option value="${c.id}">${catText(c)}</option>`).join("");
 }
 
 function openPost(editId){
@@ -4494,7 +4501,7 @@ function renderNotifyRows(){
   const subbed = new Set(mySubs.filter(s => s.category_id !== null).map(s => s.category_id));
   $("subCatList").innerHTML = categories.map(c => `
     <label class="check-row ${subbed.has(c.id) ? "on" : ""}">
-      <span>${esc(c.emoji)} ${esc(c.name)}</span>
+      <span>${catText(c)}</span>
       <input type="checkbox" data-cat="${c.id}" ${subbed.has(c.id) ? "checked" : ""}
         onchange="this.closest('.check-row').classList.toggle('on', this.checked)" />
     </label>`).join("");
@@ -4738,7 +4745,7 @@ function renderCatAdmin(){
     return `
     <div class="rowitem">
       <div class="rmain" style="cursor:default">
-        <div class="rname">${esc(c.emoji)} ${esc(c.name)}</div>
+        <div class="rname">${catText(c)}</div>
         <div class="rsub">물품 ${n}개</div>
       </div>
       <div class="racts">
