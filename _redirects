@@ -1,2 +1,19 @@
-https://hanmaeumcarote.netlify.app/* https://hanmaeumcarote.com/:splat 301!
-http://hanmaeumcarote.netlify.app/* https://hanmaeumcarote.com/:splat 301!
+# ── Cloudflare Pages · _redirects ──
+# Pages 는 _redirects 의 source 를 "경로(/…)"로만 매칭하며, 호스트(도메인) 기반
+# 매칭을 지원하지 않습니다. Netlify 식 "https://sub.netlify.app/*" 형태의 source 는
+# Pages 에서 무효(무시)입니다. → 그래서 기존 netlify.app→apex 규칙을 제거했습니다.
+#
+# *.pages.dev → https://hanmaeumcarote.com 캐노니컬 301 은 이 파일이 아니라
+# Cloudflare 대시보드에서 설정하세요:
+#   Rules → Redirect Rules → Create
+#   - If incoming requests match: Hostname equals  hanmaeumcarote.pages.dev
+#   - Then: Type 301, URL redirect,
+#           Expression: concat("https://hanmaeumcarote.com", http.request.uri.path)
+#           Preserve query string: ON
+#
+# 이 앱은 루트(/) 단일 index.html + 쿼리파라미터(?id= / ?post= / ?invite= / ?chat=)만
+# 사용하므로 SPA 폴백(/*  /index.html  200)은 필요 없습니다.
+# privacy.html 은 실제 정적 파일이라 별도 규칙이 필요 없습니다.
+#
+# 경로 기반 리다이렉트가 필요해지면 아래처럼 추가하세요(예시):
+#   /old-path  /new-path  301
