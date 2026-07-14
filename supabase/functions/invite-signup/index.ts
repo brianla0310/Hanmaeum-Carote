@@ -5,9 +5,13 @@
 //  - 흐름:
 //    1) 초대 활성(invite_enabled) + 코드 일치 확인 (불일치 → 403, 사유 비노출)
 //    2) 차단 이메일 사전 확인 (한국어 안내)
-//    3) admin.createUser(email_confirm:true) 로 계정 생성
-//       (handle_new_user 트리거가 profiles 생성)
-//    4) profiles.approved=true, joined_via='invite' 로 갱신 → 바로 이용 가능
+//    3) admin.createUser(email_confirm:true, app_metadata:{invite:true}) 로 계정 생성
+//       (handle_new_user 트리거가 profiles 생성 — invite 표시가 app_metadata 에 있으면
+//        INSERT 시점에 approved=true, joined_via='invite'. 승인 대기 알림 트리거는
+//        new.approved=false 조건이라 초대 가입엔 발동하지 않음 → 관리자 메일·종 알림 없음)
+//    4) 안전망으로 profiles.approved=true 재확인 → 바로 이용 가능
+//  - invite 표시를 app_metadata(서비스롤 전용)에 두는 이유: user_metadata 는 일반
+//    가입 시 클라이언트가 임의 조작 가능 → self-approve 방지.
 //  - verify_jwt=false: 로그인 없이 호출되며, 초대 코드로 자체 인증.
 // ============================================================
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -62,6 +66,7 @@ Deno.serve(async (req) => {
       password,
       email_confirm: true,
       user_metadata: { nickname, full_name },
+      app_metadata: { invite: true }, // 서비스롤 전용 → handle_new_user 가 approved=true 처리
     });
     if (createErr || !created?.user) {
       const msg = String(createErr?.message ?? "").toLowerCase();
