@@ -2199,13 +2199,14 @@ async function chooseBadge(id){
 
 /* ───────────────────────────────── 📖 눈높이 튜토리얼 (코치마크) ── */
 const TOUR_STEPS = [
-  { sel: null,          text: "주일 나눔 장터예요. 물건을 올리고, 마음에 들면 예약해요! 🥕" },
+  { sel: null,          text: "여기는 밀라노 한마음교회 바자회예요. 물건을 올려 함께 나누고,\n나눔 수익금은 희망하시면 전액 헌금으로 전달돼요 🥕" },
   { sel: "#postBtn",    text: "안 쓰는 물건은 여기서 사진 찍어 올려요." },
   { sel: ".toolbar",    text: "찾는 물건은 여기서 검색하거나, 종류별로 골라봐요." },
   { sel: "#grid .card", text: "마음에 들면 🤍로 찜하고, 눌러서 자세히 보고 예약해요." },
   { sel: "#chatBtn",    text: "판매자와 1:1 대화는 여기서 — 둘만의 비공개 채팅이에요." },
   { sel: "#bellBtn",    text: "나에게 온 소식(예약·댓글)은 이 종이 알려드려요." },
-  { sel: "#vtBoard",    text: "교회 소식과 나눔 후기는 게시판에서 만나요!\n천천히 둘러보세요 🥕" },
+  { sel: "#vtBoard",    text: "교회 소식과 나눔 후기는 게시판에서 만나요!" },
+  { sel: null,          text: "거래가 끝나면 물품을 판매완료로 바꿔주세요.\n헌금을 희망하시면 수익금은 나서중·윤영선 성도 또는\n운영위원회에 전달해주시면 돼요 🙏" },
 ];
 let tourList = [];   // 실제 표시할 단계(대상 요소가 있는 것만)
 let tourIdx = 0;
@@ -2215,19 +2216,34 @@ function updateTourBtn(){
   if (btn) btn.classList.toggle("hidden", !isReady());
 }
 
+// 안내를 봤는지: DB(profiles.tutorial_seen_at)가 기준(기기 무관), localStorage는 보조 캐시.
+function tutorialSeen(){
+  return !!(profile && profile.tutorial_seen_at) || !!localStorage.getItem("hmc_tour_seen");
+}
+// 봤음 기록: 로컬 캐시 + DB. 한 번만 써도 되므로 이미 있으면 DB 재기록 생략.
+function markTutorialSeen(){
+  try { localStorage.setItem("hmc_tour_seen", "1"); } catch (e) {}
+  if (profile && !profile.tutorial_seen_at){
+    profile.tutorial_seen_at = new Date().toISOString();
+    if (session)
+      db.from("profiles").update({ tutorial_seen_at: profile.tutorial_seen_at })
+        .eq("id", session.user.id).then(() => {}, () => {});
+  }
+}
 function maybeShowTourPrompt(){
-  if (!isReady() || localStorage.getItem("hmc_tour_seen")) return;
+  if (!isReady() || tutorialSeen()) return;
   // 다른 모달이 열려 있으면 건너뜀(언제든 📖 버튼으로 실행 가능)
   if ([...document.querySelectorAll(".modal")].some(m => !m.classList.contains("hidden"))) return;
   openModal("tourPromptModal");
+  markTutorialSeen();   // 제안한 순간 기록 → 기기·세션 무관 최대 1회만 제안(닫아도 반복 안 함)
 }
 function acceptTourPrompt(){
-  localStorage.setItem("hmc_tour_seen", "1");
+  markTutorialSeen();
   closeModal("tourPromptModal");
   startTour();
 }
-function dismissTourPrompt(){
-  localStorage.setItem("hmc_tour_seen", "1");
+function dismissTourPrompt(){   // "괜찮아요"도 본 것으로 기록
+  markTutorialSeen();
   closeModal("tourPromptModal");
 }
 
