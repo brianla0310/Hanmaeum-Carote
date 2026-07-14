@@ -414,8 +414,9 @@ main{ max-width:1180px; margin:0 auto; padding:30px 20px 80px; }
 @media (min-width:900px){
   #detailModal .panel{ flex-direction:row; height:620px; }
   #detailModal .d-media{ width:56%; height:100%; }
-  #detailModal .d-info{ width:44%; height:100%; display:flex; flex-direction:column; }
-  #detailModal .d-desc{ overflow-y:auto; }
+  /* 오른쪽(설명+예약 등 버튼) 전체가 하나로 스크롤 — 설명을 내려야 예약 버튼이 보임 */
+  #detailModal .d-info{ width:44%; height:100%; display:flex; flex-direction:column; overflow-y:auto; }
+  #detailModal .d-desc{ overflow-y:visible; flex:none; }
 }
 .d-media{ position:relative; background:var(--butter); aspect-ratio:1/1; max-height:52dvh; }
 @media (min-width:900px){ .d-media{ aspect-ratio:auto; max-height:none; } }
@@ -1001,8 +1002,8 @@ footer p{ font-size:var(--fs-cap); font-weight:600; margin-top:6px; }
   </div></div>
 </div>
 
-<!-- 판매완료 확인 + 헌금 희망 토글 -->
-<div class="modal hidden" id="doneModal">
+<!-- 판매완료 확인 + 헌금 희망 토글 (상세 모달 위에 떠야 하므로 z-index 상향) -->
+<div class="modal hidden" id="doneModal" style="z-index:140">
   <div class="backdrop" onclick="closeModal('doneModal')"></div>
   <div class="panel"><div class="panel-pad" style="text-align:center">
     <div style="font-size:48px;line-height:1;margin:4px 0 8px">🎉</div>
