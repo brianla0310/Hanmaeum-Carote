@@ -1000,6 +1000,27 @@ footer p{ font-size:var(--fs-cap); font-weight:600; margin-top:6px; }
   </div></div>
 </div>
 
+<!-- 판매완료 확인 + 헌금 희망 토글 -->
+<div class="modal hidden" id="doneModal">
+  <div class="backdrop" onclick="closeModal('doneModal')"></div>
+  <div class="panel"><div class="panel-pad" style="text-align:center">
+    <div style="font-size:48px;line-height:1;margin:4px 0 8px">🎉</div>
+    <h2 style="margin-bottom:6px">거래가 끝났어요</h2>
+    <p style="font-size:var(--fs-body);color:var(--muted);font-weight:600;margin-bottom:16px">
+      이 물품을 <b>판매완료</b>로 표시할게요.</p>
+    <label class="check-row on" id="doneDonateRow" style="text-align:left">
+      <span>수익금을 헌금으로 전달할게요</span>
+      <input type="checkbox" id="doneDonate" checked
+        onchange="this.closest('.check-row').classList.toggle('on', this.checked); onDoneToggle()" />
+    </label>
+    <p id="doneHint" style="font-size:var(--fs-cap);color:var(--muted);font-weight:600;line-height:1.7;margin:10px 2px 18px;text-align:left"></p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn btn-primary btn-block btn-lg" onclick="confirmDone()">판매완료로 표시</button>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('doneModal')">취소</button>
+    </div>
+  </div></div>
+</div>
+
 <footer>
   <div class="f-hand" id="footerHand">fatto con amore, a Milano</div>
   <p id="footerText">밀라노 한마음교회 사랑나눔 바자회 · 판매 수익금은 전액 사랑나눔 헌금으로 사용됩니다</p>
@@ -2044,7 +2065,7 @@ async function loadCategories(){
 
 async function loadProducts(){
   const { data, error } = await db.from("products")
-    .select(`id, name, price, status, description, images, is_hot, created_at, sold_at, donated_at, legacy,
+    .select(`id, name, price, status, description, images, is_hot, created_at, sold_at, donated_at, donate_intent, legacy,
              category_id, seller_id, reserved_by,
              category:categories(id, name, emoji),
              seller:profiles!products_seller_id_fkey(id, nickname, avatar_url, badge),
@@ -4117,6 +4138,11 @@ function renderDetailActions(p){
         `<button class="${p.status === s ? "on" : ""}" onclick="setStatus('${p.id}','${s}')">${
           statusLabel[s]}${p.status === s ? " · 지금 상태" : ""}</button>`).join("")}
     </div>`;
+    if (p.status === "판매완료"){
+      html += p.donate_intent === false
+        ? `<div class="d-note">📌 개인 거래로 표시된 물품이에요. 헌금 집계에는 포함되지 않아요.</div>`
+        : `<div class="d-note">🙏 나눔 완료! ${DONATE_GUIDE}</div>`;
+    }
   }
   // ── 수정 / 인기(관리자) / 삭제: 판매자·관리자
   if (isMine || isAdmin){
@@ -4221,7 +4247,15 @@ async function cancelReserve(id){
   renderMyList();
 }
 
+// 헌금 전달처 안내 (튜토리얼 마지막 단계 문구와 일관)
+const DONATE_GUIDE = "헌금을 희망하시면 수익금은 <b>나서중·윤영선 성도</b> 또는 <b>운영위원회</b>에 전달해주시면 돼요.";
+
 async function setStatus(id, status){
+  // 판매완료 전환은 헌금 희망 토글이 있는 확인 모달을 거친다.
+  if (status === "판매완료"){
+    const p = products.find(x => x.id === id);
+    if (p && p.status !== "판매완료"){ openDoneModal(id); return; }
+  }
   const patch = { status };
   if (status === "판매중") patch.reserved_by = null;
   const { error } = await db.from("products").update(patch).eq("id", id);
@@ -4234,6 +4268,41 @@ async function setStatus(id, status){
   await loadProducts();
   if (detailId === id) openDetail(id);
   renderMyList();
+}
+
+/* 판매완료 확인 모달 (헌금 희망 토글) */
+let doneTargetId = null;
+function openDoneModal(id){
+  doneTargetId = id;
+  const cb = $("doneDonate");
+  cb.checked = true;
+  $("doneDonateRow").classList.add("on");
+  onDoneToggle();
+  openModal("doneModal");
+}
+function onDoneToggle(){
+  const on = $("doneDonate").checked;
+  $("doneHint").innerHTML = on
+    ? "완료 후 " + DONATE_GUIDE
+    : "개인 거래로 표시돼요. 헌금 집계에는 포함되지 않아요.";
+}
+async function confirmDone(){
+  const id = doneTargetId;
+  if (!id) return;
+  const donate = $("doneDonate").checked;
+  const { error } = await db.from("products")
+    .update({ status: "판매완료", donate_intent: donate }).eq("id", id);
+  if (error){
+    toast(/insufficient_privilege|STATUS_CHANGE/.test(error.message + error.code)
+      ? "판매자 본인만 상태를 바꿀 수 있어요" : "상태 변경에 실패했어요", "err");
+    return;
+  }
+  closeModal("doneModal");
+  doneTargetId = null;
+  await loadProducts();
+  if (detailId === id) openDetail(id);
+  renderMyList();
+  toast(donate ? "판매완료로 표시했어요 🙏" : "판매완료(개인 거래)로 표시했어요");
 }
 
 // 관리자 상태 정정(운영 대응 전용). 판매자가 처리를 깜빡했을 때만.
@@ -4648,12 +4717,16 @@ function donNum(n){ return Number.isInteger(n) ? n.toLocaleString() : n.toFixed(
 
 function loadSales(){
   const list = soldProducts();
-  const donatedTotal = list.filter(p => p.donated_at).reduce((s, p) => s + (Number(p.price) || 0), 0);
-  const pendingTotal = list.filter(p => !p.donated_at).reduce((s, p) => s + (Number(p.price) || 0), 0);
+  const personal = p => p.donate_intent === false;             // 개인 거래(헌금 제외)
+  const donList = list.filter(p => !personal(p));               // 헌금 대상
+  const donatedTotal = donList.filter(p => p.donated_at).reduce((s, p) => s + (Number(p.price) || 0), 0);
+  const pendingTotal = donList.filter(p => !p.donated_at).reduce((s, p) => s + (Number(p.price) || 0), 0);
+  const personalCount = list.filter(personal).length;
   $("salesSummary").innerHTML =
-    `<div class="stat-box"><div class="n">€${donNum(donatedTotal)}</div><div class="l">기부 완료</div></div>
-     <div class="stat-box"><div class="n">€${donNum(pendingTotal)}</div><div class="l">기부 대기</div></div>
-     <div class="stat-box"><div class="n">${list.length}</div><div class="l">판매완료 건수</div></div>`;
+    `<div class="stat-box"><div class="n">€${donNum(donatedTotal)}</div><div class="l">헌금 전달 완료</div></div>
+     <div class="stat-box"><div class="n">€${donNum(pendingTotal)}</div><div class="l">헌금 대기</div></div>
+     <div class="stat-box"><div class="n">${list.length}</div><div class="l">판매완료 건수</div></div>
+     <div class="stat-box"><div class="n">${personalCount}</div><div class="l">개인 거래</div></div>`;
   if (!$("lgDate").value) $("lgDate").value = new Date().toISOString().slice(0, 10);
   const el = $("salesList");
   if (list.length === 0){
@@ -4663,18 +4736,21 @@ function loadSales(){
   el.innerHTML = list.map(p => {
     const date = new Date(p.sold_at ?? p.created_at)
       .toLocaleDateString("ko-KR", { year: "2-digit", month: "numeric", day: "numeric" });
+    const isPersonal = personal(p);
     const donated = !!p.donated_at;
     return `
-    <div class="rowitem${donated ? "" : " pending"}">
+    <div class="rowitem${isPersonal ? "" : (donated ? "" : " pending")}">
       <div class="rmain" style="cursor:default">
         <div class="rname">${esc(p.name)} · <span style="color:var(--carrot)">${fmtPrice(p.price)}</span>
-          ${donated ? `<span class="donated-tag">기부됨 ✓</span>` : ""}</div>
+          ${isPersonal ? `<span class="donated-tag" style="background:var(--butter);color:var(--muted)">개인 거래</span>`
+                       : (donated ? `<span class="donated-tag">전달됨 ✓</span>` : "")}</div>
         <div class="rsub">${date} · ${esc(saleSeller(p))}${
           p.legacy ? ` · <span style="color:var(--muted)">과거 기록</span>` : ""}</div>
       </div>
       <div class="racts">
-        <button class="mini-btn ${donated ? "" : "donate"}" onclick="toggleDonated('${p.id}', ${!donated})">${
-          donated ? "기부취소" : ic("coins","ic-16") + " 기부완료"}</button>
+        ${isPersonal ? ""
+          : `<button class="mini-btn ${donated ? "" : "donate"}" onclick="toggleDonated('${p.id}', ${!donated})">${
+              donated ? "전달 취소" : ic("coins","ic-16") + " 헌금 전달 확인"}</button>`}
         <button class="mini-btn" onclick="adminFixStatus('${p.id}')">상태 정정</button>
         ${p.legacy
           ? `<button class="mini-btn danger" onclick="deleteLegacySale('${p.id}')">삭제</button>`
@@ -4689,7 +4765,7 @@ async function toggleDonated(id, v){
   if (error){ toast("처리하지 못했어요", "err"); return; }
   await loadProducts();   // 모금액·게이지 즉시 반영
   loadSales();
-  toast(v ? "기부완료로 표시했어요 💰" : "기부완료를 취소했어요");
+  toast(v ? "헌금 전달을 확인했어요 🙏" : "헌금 전달 확인을 취소했어요");
 }
 
 async function addLegacySale(){
@@ -4740,13 +4816,13 @@ function csvCell(v){
 }
 
 function buildSalesCSV(){
-  const header = ["판매일", "물품명", "기부금", "판매자", "구분", "기부여부"];
+  const header = ["판매일", "물품명", "기부금", "판매자", "구분", "헌금구분"];
   const rows = soldProducts().map(p => {
     const date = new Date(p.sold_at ?? p.created_at).toLocaleDateString("ko-KR");
     const seller = p.legacy ? "지난 바자회" : (p.seller?.nickname || "탈퇴한 성도");
     const kind = p.legacy ? "과거 기록" : "온라인 나눔";
-    const donated = p.donated_at ? "기부완료" : "기부대기";
-    return [date, p.name, Number(p.price) || 0, seller, kind, donated];
+    const donation = p.donate_intent === false ? "개인거래" : (p.donated_at ? "헌금완료" : "헌금대기");
+    return [date, p.name, Number(p.price) || 0, seller, kind, donation];
   });
   return [header, ...rows].map(r => r.map(csvCell).join(",")).join("\r\n");
 }
