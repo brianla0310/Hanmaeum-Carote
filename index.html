@@ -674,6 +674,7 @@ footer p{ font-size:var(--fs-cap); font-weight:600; margin-top:6px; }
 <symbol id="i-refresh" viewBox="0 0 256 256"><path d="M240,56v48a8,8,0,0,1-8,8H184a8,8,0,0,1,0-16H211.4L184.81,71.64l-.25-.24a80,80,0,1,0-1.67,114.78,8,8,0,0,1,11,11.63A95.44,95.44,0,0,1,128,224h-1.32A96,96,0,1,1,195.75,60L224,85.8V56a8,8,0,1,1,16,0Z"/></symbol>
 <symbol id="i-heart" viewBox="0 0 256 256"><path d="M178,40c-20.65,0-38.73,8.88-50,23.89C116.73,48.88,98.65,40,78,40a62.07,62.07,0,0,0-62,62c0,70,103.79,126.66,108.21,129a8,8,0,0,0,7.58,0C136.21,228.66,240,172,240,102A62.07,62.07,0,0,0,178,40ZM128,214.8C109.74,204.16,32,155.69,32,102A46.06,46.06,0,0,1,78,56c19.45,0,35.78,10.36,42.6,27a8,8,0,0,0,14.8,0c6.82-16.67,23.15-27,42.6-27a46.06,46.06,0,0,1,46,46C224,155.61,146.24,204.15,128,214.8Z"/></symbol>
 <symbol id="i-heart-fill" viewBox="0 0 256 256"><path d="M240,102c0,70-103.79,126.66-108.21,129a8,8,0,0,1-7.58,0C119.79,228.66,16,172,16,102A62.07,62.07,0,0,1,78,40c20.65,0,38.73,8.88,50,23.89C139.27,48.88,157.35,40,178,40A62.07,62.07,0,0,1,240,102Z"/></symbol>
+<symbol id="i-eye" viewBox="0 0 256 256"><path d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,192c-30.78,0-57.67-11.19-79.93-33.25A133.47,133.47,0,0,1,25,128,133.33,133.33,0,0,1,48.07,97.25C70.33,75.19,97.22,64,128,64s57.67,11.19,79.93,33.25A133.46,133.46,0,0,1,231.05,128C223.84,141.46,192.43,192,128,192Zm0-112a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Z"/></symbol>
 <symbol id="i-megaphone" viewBox="0 0 256 256"><path d="M248,120a48.05,48.05,0,0,0-48-48H160.2c-2.91-.17-53.62-3.74-101.91-44.24A16,16,0,0,0,32,40V200a16,16,0,0,0,26.29,12.25c37.77-31.68,77-40.76,93.71-43.3v31.72A16,16,0,0,0,159.12,214l11,7.33A16,16,0,0,0,194.5,212l11.77-44.36A48.07,48.07,0,0,0,248,120ZM48,199.93V40h0c42.81,35.91,86.63,45,104,47.24v65.48C134.65,155,90.84,164.07,48,199.93Zm131,8,0,.11-11-7.33V168h21.6ZM200,152H168V88h32a32,32,0,1,1,0,64Z"/></symbol>
 <symbol id="i-flag" viewBox="0 0 256 256"><path d="M238.76,51.73A8,8,0,0,0,232,48H40a8,8,0,0,0-5.66,13.66L76.69,104,34.34,146.34A8,8,0,0,0,40,160H173.62l-28.84,60.56a8,8,0,1,0,14.44,6.88l80-168A8,8,0,0,0,238.76,51.73ZM181.23,144H59.31l34.35-34.34a8,8,0,0,0,0-11.32L59.31,64h160Z"/></symbol>
 <symbol id="i-lock" viewBox="0 0 256 256"><path d="M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80ZM96,56a32,32,0,0,1,64,0V80H96ZM208,208H48V96H208V208Z"/></symbol>
@@ -1421,6 +1422,15 @@ footer p{ font-size:var(--fs-cap); font-weight:600; margin-top:6px; }
 .pv-content{ white-space:pre-wrap; font-size:var(--fs-body); line-height:1.75; font-weight:500;
   margin:14px 0; overflow-wrap:break-word; }
 .pv-img{ width:100%; border-radius:var(--r-sm); margin:6px 0; }
+.pv-likebar{ display:flex; align-items:center; gap:10px; margin:14px 0 6px; }
+.like-btn{ display:inline-flex; align-items:center; gap:7px; padding:8px 16px; border-radius:var(--r-pill);
+  border:1.5px solid var(--line); background:#fff; color:var(--ink-soft); font-weight:800; font-size:var(--fs-cap);
+  cursor:pointer; transition:transform .12s, background .15s, border-color .15s, color .15s; }
+.like-btn:hover{ transform:translateY(-1px); }
+.like-btn.on{ background:var(--carrot); border-color:var(--carrot); color:#fff; }
+.like-btn .ic{ color:currentColor; }
+.pv-views{ display:inline-flex; align-items:center; gap:5px; font-size:var(--fs-cap); color:var(--muted); font-weight:700; }
+@media (prefers-reduced-motion: reduce){ .like-btn{ transition:none; } .like-btn:hover{ transform:none; } }
 .pv-product{ display:inline-flex; align-items:center; gap:6px; background:var(--butter);
   border-radius:var(--r-sm); padding:6px 12px; font-size:var(--fs-cap); font-weight:700; cursor:pointer; margin-top:6px; }
 .cmt{ display:flex; gap:8px; padding:11px 0; border-bottom:1px dashed var(--line); font-size:var(--fs-cap); }
@@ -1523,6 +1533,7 @@ footer p{ font-size:var(--fs-cap); font-weight:600; margin-top:6px; }
     <div id="pvProduct"></div>
     <div class="pv-content" id="pvContent"></div>
     <div id="pvImages"></div>
+    <div id="pvLikeBar" class="pv-likebar"></div>
     <div id="pvActions" class="d-actions" style="margin:6px 0 14px"></div>
     <h2 style="font-size:var(--fs-body);border-top:1.5px dashed var(--line);padding-top:14px">
       <svg class="ic" aria-hidden="true"><use href="#i-chat"></use></svg> 댓글 <span id="pvCmtCount" style="color:var(--carrot)"></span></h2>
@@ -3143,18 +3154,29 @@ function fmtDate(t){
   return new Date(t).toLocaleDateString("ko-KR", { month: "long", day: "numeric" });
 }
 
+let myPostLikes = new Set();   // 내가 좋아요한 post_id
+
 async function loadPosts(){
   const { data, error } = await db.from("posts")
-    .select(`id, board, title, content, images, author_id, product_id, created_at, updated_at,
+    .select(`id, board, title, content, images, author_id, product_id, created_at, updated_at, view_count,
              author:profiles!posts_author_id_fkey(id, nickname, avatar_url, badge),
              product:products(id, name),
-             comments(count)`)
+             comments(count), post_likes(count)`)
     .order("created_at", { ascending: false });
   if (error){ console.error(error); return; }
   posts = data ?? [];
+  await loadMyPostLikes();
   renderNoticeStrip();
   if (boardView === "board") renderBoard();
 }
+
+// 내가 누른 좋아요 목록(집계는 posts.post_likes(count), 내 상태는 이 Set 으로 판단)
+async function loadMyPostLikes(){
+  if (!session){ myPostLikes = new Set(); return; }
+  const { data } = await db.from("post_likes").select("post_id").eq("user_id", session.user.id);
+  myPostLikes = new Set((data ?? []).map(r => r.post_id));
+}
+function likeCount(p){ return p.post_likes?.[0]?.count ?? 0; }
 
 function renderNoticeStrip(){
   const strip = $("noticeStrip");
@@ -3194,10 +3216,12 @@ function renderPostList(){
         <span class="pr-board">${BOARD_META[p.board]?.label ?? p.board}</span>
         <span class="pr-title">${esc(p.title)}</span>
         ${p.images && p.images.length ? `<span style="flex:none;font-size:var(--fs-cap)">📷</span>` : ""}
+        ${likeCount(p) > 0 ? `<span class="pr-cmt">${ic(myPostLikes.has(p.id) ? "heart-fill" : "heart","ic-16")} ${likeCount(p)}</span>` : ""}
         ${cmtCount(p) > 0 ? `<span class="pr-cmt">${ic("chat","ic-16")} ${cmtCount(p)}</span>` : ""}
       </div>
       <div class="pr-sub">${p.author ? esc(p.author.nickname) : "탈퇴한 성도"} ·
-        ${fmtDate(p.created_at)}${p.updated_at ? " (수정됨)" : ""}</div>
+        ${fmtDate(p.created_at)}${p.updated_at ? " (수정됨)" : ""} ·
+        <span title="조회수">${ic("eye","ic-16")} ${p.view_count ?? 0}</span></div>
     </div>`).join("");
 }
 
@@ -3228,17 +3252,77 @@ async function openPostView(id){
        <button class="btn btn-danger" onclick="deletePost('${p.id}')">삭제</button>`
     : "";
 
+  renderLikeBar(p);
   $("pvCmtForm").classList.toggle("hidden", !session);
   $("pvComments").innerHTML = `<div class="empty" style="padding:14px 0">불러오는 중…</div>`;
   openModal("postViewModal");
   history.replaceState({}, "", `${location.pathname}?post=${p.id}`);
   loadComments(id);
+  bumpViewOnce(p);
 }
 
 function closePostView(){
   closeModal("postViewModal");
   currentPostId = null;
   history.replaceState({}, "", location.pathname);
+}
+
+/* ── 좋아요 · 조회수 ── */
+function setLikeCount(p, n){
+  if (!p.post_likes || !p.post_likes[0]) p.post_likes = [{ count: 0 }];
+  p.post_likes[0].count = Math.max(0, n);
+}
+function renderLikeBar(p){
+  const liked = myPostLikes.has(p.id);
+  const btn = session
+    ? `<button class="like-btn ${liked ? "on" : ""}" onclick="toggleLike('${p.id}')" aria-pressed="${liked}">
+         ${ic(liked ? "heart-fill" : "heart", "ic-18")} <span>${likeCount(p)}</span></button>`
+    : `<span class="like-btn" style="cursor:default">${ic("heart", "ic-18")} <span>${likeCount(p)}</span></span>`;
+  $("pvLikeBar").innerHTML = `${btn}
+    <span class="pv-views" title="조회수">${ic("eye","ic-16")} 조회 ${p.view_count ?? 0}</span>`;
+}
+async function toggleLike(id){
+  if (!session){ openAuth("login"); return; }
+  if (!isReady()){ toast("승인 후 이용할 수 있어요", "err"); return; }
+  const p = posts.find(x => x.id === id);
+  if (!p) return;
+  const liked = myPostLikes.has(id);
+  // 낙관적 업데이트
+  if (liked){ myPostLikes.delete(id); setLikeCount(p, likeCount(p) - 1); }
+  else      { myPostLikes.add(id);    setLikeCount(p, likeCount(p) + 1); }
+  renderLikeBar(p); renderPostList();
+  const { error } = liked
+    ? await db.from("post_likes").delete().eq("post_id", id).eq("user_id", session.user.id)
+    : await db.from("post_likes").insert({ post_id: id, user_id: session.user.id });
+  if (error){   // 롤백
+    if (liked){ myPostLikes.add(id); setLikeCount(p, likeCount(p) + 1); }
+    else      { myPostLikes.delete(id); setLikeCount(p, likeCount(p) - 1); }
+    renderLikeBar(p); renderPostList();
+    toast("좋아요 처리에 실패했어요", "err");
+  }
+}
+// 조회수 증가: 로그인 사용자, 본인 글 제외, 같은 브라우저 세션 1회(sessionStorage)
+function viewedThisSession(id){
+  try { return JSON.parse(sessionStorage.getItem("hmc_viewed") || "[]").includes(id); }
+  catch (e) { return false; }
+}
+function markViewedSession(id){
+  try {
+    const s = new Set(JSON.parse(sessionStorage.getItem("hmc_viewed") || "[]"));
+    s.add(id); sessionStorage.setItem("hmc_viewed", JSON.stringify([...s]));
+  } catch (e) {}
+}
+async function bumpViewOnce(p){
+  if (!session) return;
+  if (profile && p.author_id === profile.id) return;   // 본인 글 제외(서버도 제외)
+  if (viewedThisSession(p.id)) return;
+  markViewedSession(p.id);
+  const { error } = await db.rpc("bump_post_view", { p_id: p.id });
+  if (!error){
+    p.view_count = (p.view_count ?? 0) + 1;
+    renderLikeBar(p);
+    if (boardView === "board") renderPostList();
+  }
 }
 
 /* ── 댓글 ── */
