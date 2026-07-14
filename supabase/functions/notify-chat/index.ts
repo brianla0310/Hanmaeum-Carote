@@ -1,13 +1,39 @@
-// ============================================================
-//  한마음 CAROTE · 채팅 이메일 알림 Edge Function
-//  - 새 메시지: 상대방이 "직전에 이미 읽은 상태"였을 때만 1통 발송
-//    (안 읽은 메시지가 쌓여 있는 동안에는 추가 발송하지 않음)
-//  - 상대가 최근 3분 이내 접속 중이면(last_seen_at) 인앱 알림/소리로 충분하므로 스킵
-//  - 대화 신고: 모든 관리자에게 알림
-// ============================================================
+// notify-chat (한마음 CAROTE) — 채팅 이메일 알림 + 접속중(last_seen_at 3분) 스킵
+//   모든 메일은 notify와 동일한 공통 셸(shell)로 통일.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const SENDER_NAME = "한마음 CAROTE";
+
+// ── 공용 이메일 셸 (notify와 동일 디자인) ──────────────────────
+function shell(title: string, bodyHtml: string, cta?: { label: string; url: string }): string {
+  const btn = cta
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:8px auto 2px">
+         <tr><td align="center" style="border-radius:999px;background:#E8641B">
+           <a href="${cta.url}" target="_blank" style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:999px">${cta.label}</a>
+         </td></tr>
+       </table>`
+    : "";
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0;padding:0;background:#FBF1E4">
+    <tr><td align="center" style="padding:32px 12px">
+      <table role="presentation" width="480" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:480px;background:#FDFBF6;border:1px solid #EDE5D8;border-radius:16px;overflow:hidden">
+        <tr><td style="height:5px;font-size:0;line-height:0;background-color:#E8641B;background-image:linear-gradient(90deg,#F0902A,#E8641B,#C24E12)">&nbsp;</td></tr>
+        <tr><td style="padding:34px 32px 28px;font-family:'Apple SD Gothic Neo','Malgun Gothic','Segoe UI',sans-serif">
+          <div style="font-size:20px;font-weight:800;color:#E8641B;letter-spacing:-0.4px;margin:0 0 20px">한마음 CAROTE</div>
+          <h1 style="font-size:22px;font-weight:800;color:#26201A;line-height:1.4;letter-spacing:-0.5px;margin:0 0 16px">${title}</h1>
+          <div style="font-size:15px;line-height:1.75;color:#57503F">${bodyHtml}</div>
+          ${btn}
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:28px;border-top:1px solid #EDE5D8">
+            <tr><td style="padding-top:16px;font-size:12px;color:#8A7F70;text-align:center;line-height:1.6">밀라노 한마음교회 사랑나눔 바자회 · hanmaeumcarote.com</td></tr>
+          </table>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>`;
+}
+
+const P = (html: string) => `<p style="margin:0 0 12px">${html}</p>`;
+const strong = (s: string) => `<b style="color:#26201A">${s}</b>`;
+const note = (html: string) => `<p style="margin:14px 0 0;font-size:12.5px;color:#8A7F70;line-height:1.6">${html}</p>`;
 
 Deno.serve(async (req) => {
   try {
@@ -22,7 +48,7 @@ Deno.serve(async (req) => {
     );
     const siteUrl = (Deno.env.get("SITE_URL") ?? "").replace(/\/$/, "");
 
-    // ── 대화 신고 → 관리자 알림 ──────────────────────────
+    // ── 대화 신고 → 관리자 알림 ──────────────────────────────
     if (payload?.chat_report) {
       const { data: conv } = await admin.from("conversations")
         .select("id, product_id, products(name)")
@@ -38,20 +64,21 @@ Deno.serve(async (req) => {
         if (!a.email) continue;
         const ok = await sendEmail(a.email,
           `🚨 채팅 신고가 접수됐어요: ${prodName}`,
-          `<div style="font-family:sans-serif;line-height:1.6;color:#26201a">
-            <p>${escapeHtml(a.nickname)}님, 1:1 채팅 신고가 접수되었습니다.</p>
-            <h2 style="margin:8px 0 4px">${escapeHtml(prodName)} 관련 대화</h2>
-            <p style="margin:0">사유: <b>${escapeHtml(payload.reason || "미기재")}</b></p>
-            <p style="margin:0;color:#8a7f70">신고자: ${escapeHtml(reporter?.nickname ?? "알 수 없음")}</p>
-            <p style="margin-top:12px">관리자 메뉴의 <b>[신고된 채팅]</b>에서 대화 내용을 확인하실 수 있습니다.</p>
-            <p><a href="${siteUrl}" style="background:#e8641b;color:#fff;padding:10px 20px;border-radius:999px;text-decoration:none;font-weight:bold">사이트 열기</a></p>
-          </div>`);
+          shell(
+            "채팅 신고가 접수됐어요",
+            P(`${strong(escapeHtml(a.nickname))}님, 1:1 채팅 신고가 들어왔어요.`) +
+            P(`대화 &nbsp; ${strong(escapeHtml(prodName))} 관련`) +
+            P(`사유 &nbsp; ${strong(escapeHtml(payload.reason || "미기재"))}`) +
+            `<p style="margin:0;color:#8A7F70;font-size:14px">신고자 · ${escapeHtml(reporter?.nickname ?? "알 수 없음")}</p>` +
+            note("관리자 메뉴의 [신고된 채팅]에서 대화 내용을 확인할 수 있어요."),
+            { label: "신고된 채팅 확인하기", url: `${siteUrl}/` },
+          ));
         if (ok) sent++;
       }
       return json({ sent });
     }
 
-    // ── 새 메시지 → 상대방에게 알림 (첫 메시지만) ─────────
+    // ── 새 메시지 → 상대방에게 알림 (첫 메시지만) ─────────────
     const { data: conv } = await admin.from("conversations")
       .select("id, product_id, seller_id, buyer_id, seller_read_at, buyer_read_at, products(name)")
       .eq("id", payload.conv_id).maybeSingle();
@@ -61,8 +88,6 @@ Deno.serve(async (req) => {
     const recipientId = sender === conv.seller_id ? conv.buyer_id : conv.seller_id;
     if (!recipientId) return json({ skipped: "no recipient" });
 
-    // 이 메시지 직전에 이 방에 존재하던 메시지 수 (방금 것 제외).
-    // 상대가 안 읽은 메시지가 이미 있었다면(=unreadBefore>0) 재알림하지 않음.
     const recipientReadAt = sender === conv.seller_id ? conv.buyer_read_at : conv.seller_read_at;
     const { count: unreadBefore } = await admin.from("messages")
       .select("*", { count: "exact", head: true })
@@ -86,16 +111,18 @@ Deno.serve(async (req) => {
       .select("nickname").eq("id", sender).maybeSingle();
 
     const prodName = (conv.products as { name?: string } | null)?.name ?? "물품";
+    const senderName = senderProf?.nickname ?? "상대방";
     const link = `${siteUrl}/?chat=${conv.id}`;
     const ok = await sendEmail(recipient.email,
       `💬 [${prodName}] ${senderProf?.nickname ?? "누군가"}님이 메시지를 보냈어요`,
-      `<div style="font-family:sans-serif;line-height:1.6;color:#26201a">
-        <p>${escapeHtml(recipient.nickname)}님, 1:1 채팅에 새 메시지가 도착했습니다.</p>
-        <h2 style="margin:8px 0 4px">${escapeHtml(prodName)}</h2>
-        <p style="margin:0;color:#8a7f70"><b>${escapeHtml(senderProf?.nickname ?? "상대방")}</b>님과의 대화</p>
-        <p><a href="${link}" style="background:#e8641b;color:#fff;padding:10px 20px;border-radius:999px;text-decoration:none;font-weight:bold">답장하러 가기</a></p>
-        <p style="font-size:12px;color:#8a7f70">채팅은 비공개이며, 신고 시에만 관리자가 열람할 수 있습니다.</p>
-      </div>`);
+      shell(
+        "새 메시지가 도착했어요",
+        P(`${strong(escapeHtml(recipient.nickname))}님, 1:1 채팅에 새 메시지가 도착했어요.`) +
+        P(`물품 &nbsp; ${strong(escapeHtml(prodName))}`) +
+        P(`보낸 사람 &nbsp; ${strong(escapeHtml(senderName))}님`) +
+        note("채팅은 비공개이며, 신고 시에만 관리자가 열람할 수 있어요."),
+        { label: "답장하러 가기", url: link },
+      ));
     return json({ sent: ok ? 1 : 0 });
   } catch (e) {
     console.error(e);
